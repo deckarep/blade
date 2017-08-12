@@ -80,13 +80,17 @@ func init() {
 	userKnifeCommand = commandExpression
 
 	sem = make(chan int, concurrencyLevel)
+
+	// Adds commands to root.
+	RootCmd.AddCommand(sshCmd)
 }
 
 var RootCmd = &cobra.Command{
 	Use:   "blade",
 	Short: "do blade stuff",
 	Run: func(cmd *cobra.Command, args []string) {
-		startRootCmd()
+		//startRootCmd()
+		fmt.Println("This is Blade!")
 	},
 }
 
@@ -118,7 +122,8 @@ func parseFlags() {
 	flag.StringVar(&commandExpression, "m", "hostname", "Command like: 'hostname'")
 
 	// Parse 'em
-	flag.Parse()
+	// Disabling this for now because otherwise Cobra doesn't quite work.
+	//flag.Parse()
 }
 
 func loadSSHUserName() (string, error) {
