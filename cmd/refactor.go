@@ -88,10 +88,6 @@ func init() {
 var RootCmd = &cobra.Command{
 	Use:   "blade",
 	Short: "do blade stuff",
-	Run: func(cmd *cobra.Command, args []string) {
-		//startRootCmd()
-		fmt.Println("This is Blade!")
-	},
 }
 
 func startRootCmd() {

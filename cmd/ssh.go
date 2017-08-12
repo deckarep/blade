@@ -1,14 +1,20 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
+	"log"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh"
 )
 
+// Flag variables
 var (
 	retries     int
 	concurrency int
+	hosts       string
 )
 
 // blade ssh deploy-cloud-server-a // matches a recipe and therefore will follow the recipe guidelines against servers defined in recipe
@@ -32,8 +38,11 @@ var (
 //    i. ability to view a simplified output of progress, notify end-user with gosx-notifier
 //    j. ability to tie into ANY query infrastructure by allowing you to either pass in comma delimited servers
 //          - or add something like this to your recipe: `ips prod redis-hosts -c`
+// 8. blade generate where generate a database of all your recipes as Cobra Commands.
+// 9. A seperate bolt database stores hosts cache for speed.
 
 func init() {
+	sshCmd.Flags().StringVarP(&hosts, "hosts", "x", "", "--hosts flag is one or more comma delimited hosts.")
 	sshCmd.Flags().IntVarP(&concurrency, "concurrency", "c", 1, "Max concurrency when running ssh commands")
 	sshCmd.Flags().IntVarP(&retries, "retries", "r", 3, "Number of times to retry until a successful command returns")
 }
@@ -43,6 +52,61 @@ var sshCmd = &cobra.Command{
 	Short: "ssh [command]",
 	Long:  "ssh [command] will execute the [command] on all servers. If the command matches a recipe name first, the recipe will be used in place of the command.",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("ssh command ran")
+		sshConfig := &ssh.ClientConfig{
+			User: "root",
+			Auth: []ssh.AuthMethod{
+				sshAgent(),
+			},
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		}
+
+		sshCmd := "hostname"
+		if len(args) > 0 {
+			sshCmd = args[0]
+		}
+
+		// TESTING PURPOSES DO NOT SUBMIT THIS IP
+		doSSH(sshConfig, hosts, sshCmd)
 	},
+}
+
+func doSSH(sshConfig *ssh.ClientConfig, hostname string, command string) {
+	var finalError error
+	defer func() {
+		if finalError != nil {
+			log.Println(color.YellowString(hostname) + fmt.Sprintf(" error %s", finalError.Error()))
+			//hostErrorSet.Add(hostname)
+		}
+	}()
+
+	client, err := ssh.Dial("tcp", hostname, sshConfig)
+	if err != nil {
+		finalError = fmt.Errorf("Failed to dial remote host: %s", err.Error())
+		return
+	}
+
+	// Each ClientConn can support multiple interactive sessions,
+	// represented by a Session.
+	session, err := client.NewSession()
+	if err != nil {
+		finalError = fmt.Errorf("Failed to create session: %s", err.Error())
+		return
+	}
+	defer session.Close()
+
+	// Once a Session is created, you can execute a single command on
+	// the remote side using the Run method.
+	var outputBuffer bytes.Buffer
+	session.Stdout = &outputBuffer
+
+	// if err := session.Run("cd /opt/company/serverd/current && git rev-parse HEAD"); err != nil {
+	// 	log.Printf("Failed to run command: %s", err.Error())
+	// }
+
+	if err := session.Run(command); err != nil {
+		log.Printf("Failed to run command: %s", err.Error())
+	}
+
+	// Hostname
+	log.Print(color.GreenString(hostname) + " " + outputBuffer.String())
 }
