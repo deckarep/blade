@@ -18,6 +18,7 @@ var (
 	retries     int
 	concurrency int
 	hosts       string
+	port        int
 )
 
 // App variables
@@ -55,6 +56,7 @@ func init() {
 	sshCmd.Flags().StringVarP(&hosts, "hosts", "x", "", "--hosts flag is one or more comma delimited hosts.")
 	sshCmd.Flags().IntVarP(&concurrency, "concurrency", "c", 1, "Max concurrency when running ssh commands")
 	sshCmd.Flags().IntVarP(&retries, "retries", "r", 3, "Number of times to retry until a successful command returns")
+	sshCmd.Flags().IntVarP(&port, "port", "p", 22, "The ssh port to use")
 }
 
 var sshCmd = &cobra.Command{
@@ -78,12 +80,14 @@ var sshCmd = &cobra.Command{
 		concurrencySem = make(chan int, concurrency)
 		go consumeAndLimitConcurrency(sshConfig, sshCmd)
 
-		for _, h := range strings.Split(hosts, ",") {
+		allHosts := strings.Split(hosts, ",")
+		totalHosts := len(allHosts)
+		for _, h := range allHosts {
 			startHost(h)
 		}
 
 		hostWg.Wait()
-		log.Print(color.GreenString("Finished: x out of n."))
+		log.Print(color.GreenString(fmt.Sprintf("Finished: x out of %d.", totalHosts)))
 	},
 }
 
@@ -91,8 +95,8 @@ func startHost(host string) {
 	trimmedHost := strings.TrimSpace(host)
 
 	// If it doesn't contain port :22 add it
-	if !strings.Contains(trimmedHost, ":22") {
-		trimmedHost = trimmedHost + ":22"
+	if !strings.Contains(trimmedHost, ":") {
+		trimmedHost = fmt.Sprintf("%s:%d", trimmedHost, port)
 	}
 
 	// Ignore what you can't parse as host:port
