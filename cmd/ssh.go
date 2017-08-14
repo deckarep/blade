@@ -1,9 +1,12 @@
 package cmd
 
 import (
-	"bytes"
+	"bufio"
 	"fmt"
 	"log"
+	"net"
+	"strings"
+	"sync"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -15,6 +18,13 @@ var (
 	retries     int
 	concurrency int
 	hosts       string
+)
+
+// App variables
+var (
+	concurrencySem chan int
+	hostQueue      = make(chan string)
+	hostWg         sync.WaitGroup
 )
 
 // blade ssh deploy-cloud-server-a // matches a recipe and therefore will follow the recipe guidelines against servers defined in recipe
@@ -65,9 +75,51 @@ var sshCmd = &cobra.Command{
 			sshCmd = args[0]
 		}
 
-		// TESTING PURPOSES DO NOT SUBMIT THIS IP
-		doSSH(sshConfig, hosts, sshCmd)
+		concurrencySem = make(chan int, concurrency)
+		go consumeAndLimitConcurrency(sshConfig, sshCmd)
+
+		for _, h := range strings.Split(hosts, ",") {
+			startHost(h)
+		}
+
+		hostWg.Wait()
+		log.Print(color.GreenString("Finished: x out of n."))
 	},
+}
+
+func startHost(host string) {
+	trimmedHost := strings.TrimSpace(host)
+
+	// If it doesn't contain port :22 add it
+	if !strings.Contains(trimmedHost, ":22") {
+		trimmedHost = trimmedHost + ":22"
+	}
+
+	// Ignore what you can't parse as host:port
+	_, _, err := net.SplitHostPort(trimmedHost)
+	if err != nil {
+		log.Printf("Couldn't parse: %s", trimmedHost)
+		return
+	}
+
+	//hostSet.Add(trimmedHost)
+
+	// Finally queue it up for processing
+	hostQueue <- trimmedHost
+	hostWg.Add(1)
+}
+
+func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, command string) {
+	for host := range hostQueue {
+		concurrencySem <- 1
+		go func(h string) {
+			defer func() {
+				<-concurrencySem
+				hostWg.Done()
+			}()
+			doSSH(sshConfig, h, command)
+		}(host)
+	}
 }
 
 func doSSH(sshConfig *ssh.ClientConfig, hostname string, command string) {
@@ -94,19 +146,26 @@ func doSSH(sshConfig *ssh.ClientConfig, hostname string, command string) {
 	}
 	defer session.Close()
 
+	out, err := session.StdoutPipe()
+	if err != nil {
+		log.Fatal("Couldn't create pipe to session stdout... :(")
+	}
+	scanner := bufio.NewScanner(out)
+
 	// Once a Session is created, you can execute a single command on
 	// the remote side using the Run method.
-	var outputBuffer bytes.Buffer
-	session.Stdout = &outputBuffer
-
-	// if err := session.Run("cd /opt/company/serverd/current && git rev-parse HEAD"); err != nil {
-	// 	log.Printf("Failed to run command: %s", err.Error())
-	// }
-
 	if err := session.Run(command); err != nil {
 		log.Printf("Failed to run command: %s", err.Error())
 	}
 
-	// Hostname
-	log.Print(color.GreenString(hostname) + " " + outputBuffer.String())
+	currentHost := strings.Split(hostname, ":")[0]
+	logHost := color.GreenString(currentHost)
+
+	for scanner.Scan() {
+		fmt.Println(logHost + " " + scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Print(color.RedString(currentHost) + ": Error reading output from this host.")
+	}
 }
