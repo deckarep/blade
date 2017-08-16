@@ -44,7 +44,6 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/deckarep/golang-set"
 	"github.com/fatih/color"
-	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
@@ -104,11 +103,6 @@ func init() {
 
 	// Adds commands to root.
 	RootCmd.AddCommand(sshCmd)
-}
-
-var RootCmd = &cobra.Command{
-	Use:   "blade",
-	Short: "do blade stuff",
 }
 
 func startRootCmd() {

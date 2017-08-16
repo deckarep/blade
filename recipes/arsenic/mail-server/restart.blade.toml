@@ -1,0 +1,8 @@
+Name = "arsenic.mail-server.restart"
+Concurrency = 3
+Command = "hostname"
+Retries = 3
+RetryBackStrategy = ""
+FailBatch = false
+PauseDuration = "10s"
+HostLookupCommand = "ips prod mail-server"
