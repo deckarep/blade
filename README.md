@@ -5,7 +5,7 @@ Administer servers the Deckarep's  way: Blade is bigger, better, faster than Kni
 
 ### Features
 * Blade eats ssh connections for breakfast: Translation 1 goroutine per ssh connection vs 1 os thread per ssh connection.
-* Caches knife queries for faster execution (configurable)
+* Caches queries for faster execution (configurable)
 * Enforces a consistent style for common tasks
 * Built-in safety for destructive commands
 * Consists of components which are single one-off commands
@@ -15,6 +15,8 @@ Administer servers the Deckarep's  way: Blade is bigger, better, faster than Kni
 * Colorized output for easier groking
 * Automatically ensures all commands run properly: asserts exit(0)
 * Allows for custom user-specific components and recipes
+
+### Possible Future Features
 * Deploy locks, is someone else already deploying?  Let's not step on each other...yours will have to wait.
 
 

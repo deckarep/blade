@@ -23,6 +23,7 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 
 	"github.com/BurntSushi/toml"
@@ -30,9 +31,27 @@ import (
 	"os"
 )
 
+// Idea: scan all files, and build a simple tree strucutre this way we can
+// traverse the tree and build the Cobra.Command matching tree.
+// or maybe we just do this in one shot...and we don't need this other representation.
+type SubCommand struct {
+	// name is the name of the current command.
+	name string
+	// child a reference to a child subcommand.
+	children []*SubCommand
+	// terminating indicates no child is defined and this command is actionable.
+	terminating bool
+}
+
 // TODO: what does a recipe look like?
 // Recipe is the root structure that all recipes shall "inherit".
 type Recipe struct {
+	// Prompt indicates whether Blade should always prompt before continuing.
+	Prompt bool
+	// PromptBanner allows you to display a message before the user continues after the prompt.
+	PromptBanner string
+	// PromptColor allows you to color the PromptBanner to make things obvious before continuing.
+	PromptColor string
 	// Name is the name of this recipe.
 	Name string
 	// FilePath is the exact file location of this recipe.
@@ -71,6 +90,21 @@ type AggregateRecipe struct {
 func init() {
 	recipeCmd.AddCommand(recipeListCmd, recipeShowCmd, recipeValidateCmd, recipeTestCmd)
 	RootCmd.AddCommand(recipeCmd)
+
+	// Sample model of commands and subcommands
+	// root := &SubCommand{
+	// 	name: "root recipe folder",
+	// 	children: []*SubCommand{
+	// 		name: "arsenic",
+	// 		children: []*SubCommand{
+	// 			name: "mail-server",
+	// 			children: []*SubCommand{
+	// 				name:        "restart",
+	// 				terminating: true,
+	// 			},
+	// 		},
+	// 	},
+	// }
 }
 
 var recipeValidateCmd = &cobra.Command{
@@ -106,15 +140,21 @@ var recipeTestCmd = &cobra.Command{
 	Use:   "test [recipe-name]",
 	Short: "test is internally used for testing this code",
 	Run: func(cmd *cobra.Command, args []string) {
-		basicRecipe := &Recipe{
-			FilePath:    "recipes/arsenic/mail-server/restart.blade.toml",
-			Name:        "arsenic.mail-server.restart",
-			Concurrency: 3,
-			Command:     "hostname",
-			Retries:     3,
-			FailBatch:   false,
+		b, err := ioutil.ReadFile("recipes/arsenic/mail-server/restart.blade.toml")
+		if err != nil {
+			log.Fatal("Failed to load this recipe sucka:", err.Error())
 		}
-		err := toml.NewEncoder(os.Stdout).Encode(basicRecipe)
+
+		var basicRecipe Recipe
+		_, err = toml.Decode(string(b), &basicRecipe)
+		if err != nil {
+			log.Fatal("Failed to toml/decode this recipe sucka:", err.Error())
+		}
+
+		// The first _ in toml.Decode is a meta property with more interesting details.
+		//fmt.Println(meta.IsDefined("PromptBanner"))
+
+		err = toml.NewEncoder(os.Stdout).Encode(&basicRecipe)
 		if err != nil {
 			log.Fatal("Failed to encode your recipe sucka!")
 		}

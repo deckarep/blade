@@ -1,4 +1,6 @@
-Name = "arsenic.mail-server.restart"
+# restarts the mail-server the proper way and always ensure all proper ports are bound.
+Name = "restart"
+PromptBanner = "This will restart mail-server and cause a small backlog to occur"
 Concurrency = 3
 Command = "hostname"
 Retries = 3
