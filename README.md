@@ -19,6 +19,39 @@ Administer servers the Deckarep's  way: Blade is bigger, better, faster than Kni
 ### Possible Future Features
 * Deploy locks, is someone else already deploying?  Let's not step on each other...yours will have to wait.
 
+### Testing
+* Turn on Remote Management for your Mac
+* Add your id_rsa.pub to ~/.ssh/authorized_keys file
+* Add /etc/hosts alias to your hosts file like so
+* This gives you the ability to test locally
+
+```
+127.0.0.1 blade.local
+127.0.0.1 blade.dev.local
+127.0.0.1 blade.prod.local
+```
+
+* Add something like this to your ~/.ssh/config file
+```
+Host blade.local
+  User deckarep
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile ~/.ssh/id_rsa
+
+Host blade.dev.local
+  User deckarep
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile ~/.ssh/id_rsa
+
+Host blade.prod.local
+  User deckarep
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile ~/.ssh/id_rsa
+```
+
 
 ### Why a new tool?
 Knife is cool for what it does but it's written in Ruby and actually spins up a full OS dedicated thread per connection.
