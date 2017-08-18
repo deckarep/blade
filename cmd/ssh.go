@@ -40,6 +40,7 @@ var (
 	concurrency int
 	hosts       string
 	port        int
+	user        string
 )
 
 // App variables
@@ -78,6 +79,7 @@ func init() {
 	sshCmd.Flags().IntVarP(&concurrency, "concurrency", "c", 1, "Max concurrency when running ssh commands")
 	sshCmd.Flags().IntVarP(&retries, "retries", "r", 3, "Number of times to retry until a successful command returns")
 	sshCmd.Flags().IntVarP(&port, "port", "p", 22, "The ssh port to use")
+	sshCmd.Flags().StringVarP(&user, "user", "u", "root", "--user for ssh")
 }
 
 var sshCmd = &cobra.Command{
@@ -86,7 +88,7 @@ var sshCmd = &cobra.Command{
 	Long:  "ssh [command] will execute the [command] on all servers. If the command matches a recipe name first, the recipe will be used in place of the command.",
 	Run: func(cmd *cobra.Command, args []string) {
 		sshConfig := &ssh.ClientConfig{
-			User: "root",
+			User: user,
 			Auth: []ssh.AuthMethod{
 				sshAgent(),
 			},
@@ -110,6 +112,32 @@ var sshCmd = &cobra.Command{
 		hostWg.Wait()
 		log.Print(color.GreenString(fmt.Sprintf("Finished: x out of %d.", totalHosts)))
 	},
+}
+
+// TODO: most of this code was copied from the ssh command code above
+// TODO: REFACTOR BRO
+func startSSHSession(recipe *Recipe) {
+	sshConfig := &ssh.ClientConfig{
+		User: recipe.User,
+		Auth: []ssh.AuthMethod{
+			sshAgent(),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+
+	sshCmd := recipe.Command
+
+	concurrencySem = make(chan int, recipe.Concurrency)
+	go consumeAndLimitConcurrency(sshConfig, sshCmd)
+
+	allHosts := recipe.Hosts
+	totalHosts := len(allHosts)
+	for _, h := range allHosts {
+		startHost(h)
+	}
+
+	hostWg.Wait()
+	log.Print(color.GreenString(fmt.Sprintf("Finished: x out of %d.", totalHosts)))
 }
 
 func startHost(host string) {

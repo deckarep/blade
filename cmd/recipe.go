@@ -49,6 +49,8 @@ type SubCommand struct {
 // TODO: what does a recipe look like?
 // Recipe is the root structure that all recipes shall "inherit".
 type Recipe struct {
+	// User string
+	User string
 	// Use string
 	Use string
 	// Short string
@@ -212,6 +214,10 @@ func generateCommandLine() {
 			for _, p := range parts[1:] {
 				var currentCommand *cobra.Command
 
+				// Known bug, we need to dedup these, but add them to a map based on their full path.
+				// Reason is: if you have the same folder name in different hiearchies you'll collide.
+				// Idea: Let user drop a .blade.toml file in a folder with a Short/Long
+				// This way we can add docs to describe command hiearchies when user uses the --help system.
 				if _, ok := commands[p]; !ok {
 					// If not found create it.
 					currentCommand = &cobra.Command{
@@ -228,9 +234,17 @@ func generateCommandLine() {
 				// If we're not a dir but a blade.toml...set it up to Run.
 				if strings.HasSuffix(p, "blade.toml") {
 					currentCommand.Run = func(cmd *cobra.Command, args []string) {
+						// It's probably better to not compile the properties like this
+						// And instead just kick off the work pointing to the .blade.toml file
+						// This way, we defer loading of the file until the last minute of execution.
+						// This means you can regenerate your command hiearchy but since it loads the .blade.toml
+						// on demand, should you change the file you don't have to regenerate.
+						// Therefore regenerating speeds up the startup of the program but doesn't bake in the end result of each command.
+						// The generate command is only going to be useful when a user starts having on the order of 100s of commands.
 						fmt.Println("Recipe Command:", currentRecipe.Command)
 						fmt.Println("Hosts: ", currentRecipe.Hosts)
 						fmt.Println("HostsLookupCommand:", currentRecipe.HostLookupCommand)
+						startSSHSession(currentRecipe)
 					}
 				}
 
