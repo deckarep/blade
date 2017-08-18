@@ -229,6 +229,8 @@ func generateCommandLine() {
 				if strings.HasSuffix(p, "blade.toml") {
 					currentCommand.Run = func(cmd *cobra.Command, args []string) {
 						fmt.Println("Recipe Command:", currentRecipe.Command)
+						fmt.Println("Hosts: ", currentRecipe.Hosts)
+						fmt.Println("HostsLookupCommand:", currentRecipe.HostLookupCommand)
 					}
 				}
 

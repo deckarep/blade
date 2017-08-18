@@ -10,4 +10,5 @@ Retries = 3
 RetryBackStrategy = ""
 FailBatch = false
 PauseDuration = "10s"
-HostLookupCommand = "ips prod mail-server"
+# HostLookupCommand = "ips prod mail-server"
+Hosts = ["blade.local"]
