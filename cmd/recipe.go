@@ -25,10 +25,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"path/filepath"
+	"strings"
+
+	"os"
 
 	"github.com/BurntSushi/toml"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 // Idea: scan all files, and build a simple tree strucutre this way we can
@@ -46,6 +49,12 @@ type SubCommand struct {
 // TODO: what does a recipe look like?
 // Recipe is the root structure that all recipes shall "inherit".
 type Recipe struct {
+	// Use string
+	Use string
+	// Short string
+	Short string
+	// Long string
+	Long string
 	// Prompt indicates whether Blade should always prompt before continuing.
 	Prompt bool
 	// PromptBanner allows you to display a message before the user continues after the prompt.
@@ -89,6 +98,7 @@ type AggregateRecipe struct {
 
 func init() {
 	recipeCmd.AddCommand(recipeListCmd, recipeShowCmd, recipeValidateCmd, recipeTestCmd)
+	generateCommandLine()
 	RootCmd.AddCommand(recipeCmd)
 
 	// Sample model of commands and subcommands
@@ -140,23 +150,96 @@ var recipeTestCmd = &cobra.Command{
 	Use:   "test [recipe-name]",
 	Short: "test is internally used for testing this code",
 	Run: func(cmd *cobra.Command, args []string) {
-		b, err := ioutil.ReadFile("recipes/arsenic/mail-server/restart.blade.toml")
-		if err != nil {
-			log.Fatal("Failed to load this recipe sucka:", err.Error())
-		}
+		rec, err := loadRecipe("recipes/arsenic/mail-server/restart.blade.toml")
 
-		var basicRecipe Recipe
-		_, err = toml.Decode(string(b), &basicRecipe)
-		if err != nil {
-			log.Fatal("Failed to toml/decode this recipe sucka:", err.Error())
-		}
-
-		// The first _ in toml.Decode is a meta property with more interesting details.
-		//fmt.Println(meta.IsDefined("PromptBanner"))
-
-		err = toml.NewEncoder(os.Stdout).Encode(&basicRecipe)
+		err = toml.NewEncoder(os.Stdout).Encode(rec)
 		if err != nil {
 			log.Fatal("Failed to encode your recipe sucka!")
 		}
 	},
+}
+
+func loadRecipe(path string) (*Recipe, error) {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		// TODO: errors.Wrap
+		return nil, err
+	}
+
+	var basicRecipe Recipe
+	_, err = toml.Decode(string(b), &basicRecipe)
+	if err != nil {
+		// TODO: errors.Wrap
+		return nil, err
+	}
+
+	// The first _ in toml.Decode is a meta property with more interesting details.
+	//fmt.Println(meta.IsDefined("PromptBanner"))
+
+	return &basicRecipe, nil
+}
+
+func generateCommandLine() {
+	rootRecipeFolder := "recipes/"
+
+	fileList := []string{}
+	err := filepath.Walk(rootRecipeFolder, func(path string, f os.FileInfo, err error) error {
+		fileList = append(fileList, path)
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal("Failed to generate recipe data")
+	}
+
+	commands := make(map[string]*cobra.Command)
+
+	// For now let's skip the global.blade.toml file.
+	for _, file := range fileList {
+		if strings.HasSuffix(file, ".blade.toml") &&
+			!strings.Contains(file, "global.blade.toml") {
+			parts := strings.Split(file, "/")
+			var lastCommand *cobra.Command
+			lastCommand = nil
+
+			currentRecipe, err := loadRecipe(file)
+			if err != nil {
+				// TODO: don't fatal but skip recipe or log.
+				log.Fatal("Found a broken recipe that we can't load: ", err.Error())
+			}
+
+			// parts[1:] drop the /recipe part.
+			for _, p := range parts[1:] {
+				var currentCommand *cobra.Command
+
+				if _, ok := commands[p]; !ok {
+					// If not found create it.
+					currentCommand = &cobra.Command{
+						Use:   p,
+						Short: currentRecipe.Short,
+						Long:  currentRecipe.Long,
+					}
+					commands[p] = currentCommand
+				} else {
+					// If found use it.
+					currentCommand = commands[p]
+				}
+
+				// If we're not a dir but a blade.toml...set it up to Run.
+				if strings.HasSuffix(p, "blade.toml") {
+					currentCommand.Run = func(cmd *cobra.Command, args []string) {
+						fmt.Println("Recipe Command:", currentRecipe.Command)
+					}
+				}
+
+				if lastCommand == nil {
+					recipeCmd.AddCommand(currentCommand)
+				} else {
+					lastCommand.AddCommand(currentCommand)
+				}
+
+				lastCommand = currentCommand
+			}
+		}
+	}
 }

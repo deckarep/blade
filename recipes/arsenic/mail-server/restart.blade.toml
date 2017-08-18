@@ -1,8 +1,11 @@
 # restarts the mail-server the proper way and always ensure all proper ports are bound.
 Name = "restart"
+Short = "restarts some server"
+Long = "restarts some server and also blah blah blah...and additionally"
+Usage = "restart"
 PromptBanner = "This will restart mail-server and cause a small backlog to occur"
 Concurrency = 3
-Command = "hostname"
+Command = "sudo service redis restart"
 Retries = 3
 RetryBackStrategy = ""
 FailBatch = false
