@@ -99,7 +99,7 @@ type AggregateRecipe struct {
 }
 
 func init() {
-	recipeCmd.AddCommand(recipeListCmd, recipeShowCmd, recipeValidateCmd, recipeTestCmd)
+	recipeCmd.AddCommand(recipeListCmd, recipeShowCmd, recipeValidateCmd, recipeTestCmd, recipeDumpCmd)
 	generateCommandLine()
 	RootCmd.AddCommand(recipeCmd)
 
@@ -160,6 +160,76 @@ var recipeTestCmd = &cobra.Command{
 		}
 	},
 }
+
+// This block is for prototyping a good design.
+type RequiredRecipe struct {
+	Command           string
+	Hosts             []string `toml:"Hosts,omitempty"`             // Must specify one or the other.
+	HostLookupCommand string   `toml:"HostLookupCommand,omitempty"` // What happens if both are?
+}
+type HelpRecipe struct {
+	Short string
+	Long  string
+	Usage string
+}
+
+type InteractionRecipe struct {
+	Banner       string
+	PromptBanner bool
+	PromptColor  string
+}
+
+type ResilienceRecipe struct {
+	WaitDuration           string
+	Retries                int
+	RetryBackoffStrategy   string
+	RetryBackoffMultiplier string // <-- this is a duration like 5s
+	FailBatch              bool
+}
+type TestRecipe struct {
+	RequiredRecipe
+	Resilience  *ResilienceRecipe
+	Help        *HelpRecipe
+	Interaction *InteractionRecipe
+}
+
+var recipeDumpCmd = &cobra.Command{
+	Use:   "dump",
+	Short: "dumps a recipe",
+	Run: func(cmd *cobra.Command, args []string) {
+		s := &TestRecipe{
+			RequiredRecipe: RequiredRecipe{
+				Command: "hostname",
+				Hosts:   []string{"blade.local", "blade.prod.local", "blade.integ.local"},
+			},
+			Resilience: &ResilienceRecipe{
+				WaitDuration:           "5s", // <-- time to sleep after command exits.
+				Retries:                3,
+				RetryBackoffStrategy:   "Exponential",
+				RetryBackoffMultiplier: "5s",
+				FailBatch:              true,
+			},
+			Help: &HelpRecipe{
+				Usage: "boom",
+				Short: "Does something cool",
+				Long: `This recipe does something cool and also makes sure to blah...blah...blah. Also it's 
+				supposed to ensure that blah blah and so you can be assured that it works great.`,
+			},
+			Interaction: &InteractionRecipe{
+				Banner:       "Are you sure you want to continue?",
+				PromptBanner: true,
+				PromptColor:  "red",
+			},
+		}
+
+		err := toml.NewEncoder(os.Stdout).Encode(&s)
+		if err != nil {
+			log.Fatal("Failed to encode your recipe sucka!")
+		}
+	},
+}
+
+// End block for prototype.
 
 func loadRecipe(path string) (*Recipe, error) {
 	b, err := ioutil.ReadFile(path)
