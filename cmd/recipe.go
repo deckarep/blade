@@ -34,89 +34,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Idea: scan all files, and build a simple tree strucutre this way we can
-// traverse the tree and build the Cobra.Command matching tree.
-// or maybe we just do this in one shot...and we don't need this other representation.
-type SubCommand struct {
-	// name is the name of the current command.
-	name string
-	// child a reference to a child subcommand.
-	children []*SubCommand
-	// terminating indicates no child is defined and this command is actionable.
-	terminating bool
-}
+// // StepRecipe is an ordered series of recipes that will be attempted in the specified order.
+// // The parameters specified in this recipe supercede the parameters in the individual recipe.
+// type StepRecipe struct {
+// 	// Hmmm...does a step recipe inherit the properties above? Or does it have it's own similar specialized properties.
+// 	Recipe
+// 	Steps             []*Recipe
+// 	StepPauseDuration string
+// }
 
-// TODO: what does a recipe look like?
-// Recipe is the root structure that all recipes shall "inherit".
-type Recipe struct {
-	// User string
-	User string
-	// Use string
-	Use string
-	// Short string
-	Short string
-	// Long string
-	Long string
-	// Prompt indicates whether Blade should always prompt before continuing.
-	Prompt bool
-	// PromptBanner allows you to display a message before the user continues after the prompt.
-	PromptBanner string
-	// PromptColor allows you to color the PromptBanner to make things obvious before continuing.
-	PromptColor string
-	// Name is the name of this recipe.
-	Name string
-	// FilePath is the exact file location of this recipe.
-	FilePath string
-	// Concurrency is the bounded limit on number of parallel executions of a recipe.
-	Concurrency int
-	// Command is the actual command to be executed on the remote server.
-	Command string
-	// Retries is the number of allowed retries before we stop trying.
-	Retries int
-	// RetryBackOffStrategy is the strategy used for retrying and waiting such as: Constant, Exponential, etc.
-	RetryBackStrategy string
-	// FailBatch indicates whether a single failure should prevent the entire batch from executing.
-	FailBatch bool
-	// PauseDuration is a time.Duration string indicating how long to wait between executed commands.
-	PauseDuration string
-	// Hosts is a hardcoded list of hosts to execute on.
-	Hosts []string
-	// HostLookupCommand is an external command that you can provide to have Blade dynamically lookup before execution of this recipe.
-	HostLookupCommand string
-}
-
-// StepRecipe is an ordered series of recipes that will be attempted in the specified order.
-// The parameters specified in this recipe supercede the parameters in the individual recipe.
-type StepRecipe struct {
-	// Hmmm...does a step recipe inherit the properties above? Or does it have it's own similar specialized properties.
-	Recipe
-	Steps             []*Recipe
-	StepPauseDuration string
-}
-
-type AggregateRecipe struct {
-	Recipe
-}
+// type AggregateRecipe struct {
+// 	Recipe
+// }
 
 func init() {
 	recipeCmd.AddCommand(recipeListCmd, recipeShowCmd, recipeValidateCmd, recipeTestCmd, recipeDumpCmd)
 	generateCommandLine()
 	RootCmd.AddCommand(recipeCmd)
-
-	// Sample model of commands and subcommands
-	// root := &SubCommand{
-	// 	name: "root recipe folder",
-	// 	children: []*SubCommand{
-	// 		name: "arsenic",
-	// 		children: []*SubCommand{
-	// 			name: "mail-server",
-	// 			children: []*SubCommand{
-	// 				name:        "restart",
-	// 				terminating: true,
-	// 			},
-	// 		},
-	// 	},
-	// }
 }
 
 var recipeValidateCmd = &cobra.Command{
@@ -161,12 +95,37 @@ var recipeTestCmd = &cobra.Command{
 	},
 }
 
+func NewRecipe() *BladeRecipe {
+	return &BladeRecipe{
+		Overrides:   &OverridesRecipe{},
+		Required:    &RequiredRecipe{},
+		Resilience:  &ResilienceRecipe{},
+		Help:        &HelpRecipe{},
+		Interaction: &InteractionRecipe{},
+	}
+}
+
+// BladeRecipe is the root recipe type.
+type BladeRecipe struct {
+	Overrides   *OverridesRecipe
+	Required    *RequiredRecipe
+	Resilience  *ResilienceRecipe
+	Help        *HelpRecipe
+	Interaction *InteractionRecipe
+}
+
 // This block is for prototyping a good design.
 type RequiredRecipe struct {
 	Command           string
 	Hosts             []string `toml:"Hosts,omitempty"`             // Must specify one or the other.
 	HostLookupCommand string   `toml:"HostLookupCommand,omitempty"` // What happens if both are?
 }
+
+type OverridesRecipe struct {
+	Concurrency int
+	User        string
+}
+
 type HelpRecipe struct {
 	Short string
 	Long  string
@@ -186,19 +145,17 @@ type ResilienceRecipe struct {
 	RetryBackoffMultiplier string // <-- this is a duration like 5s
 	FailBatch              bool
 }
-type TestRecipe struct {
-	RequiredRecipe
-	Resilience  *ResilienceRecipe
-	Help        *HelpRecipe
-	Interaction *InteractionRecipe
-}
 
 var recipeDumpCmd = &cobra.Command{
 	Use:   "dump",
 	Short: "dumps a recipe",
 	Run: func(cmd *cobra.Command, args []string) {
-		s := &TestRecipe{
-			RequiredRecipe: RequiredRecipe{
+		s := &BladeRecipe{
+			Overrides: &OverridesRecipe{
+				Concurrency: 7,
+				User:        "john",
+			},
+			Required: &RequiredRecipe{
 				Command: "hostname",
 				Hosts:   []string{"blade.local", "blade.prod.local", "blade.integ.local"},
 			},
@@ -231,15 +188,15 @@ var recipeDumpCmd = &cobra.Command{
 
 // End block for prototype.
 
-func loadRecipe(path string) (*Recipe, error) {
+func loadRecipe(path string) (*BladeRecipe, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		// TODO: errors.Wrap
 		return nil, err
 	}
 
-	var basicRecipe Recipe
-	_, err = toml.Decode(string(b), &basicRecipe)
+	rec := NewRecipe()
+	_, err = toml.Decode(string(b), rec)
 	if err != nil {
 		// TODO: errors.Wrap
 		return nil, err
@@ -248,7 +205,7 @@ func loadRecipe(path string) (*Recipe, error) {
 	// The first _ in toml.Decode is a meta property with more interesting details.
 	//fmt.Println(meta.IsDefined("PromptBanner"))
 
-	return &basicRecipe, nil
+	return rec, nil
 }
 
 func generateCommandLine() {
@@ -292,8 +249,8 @@ func generateCommandLine() {
 					// If not found create it.
 					currentCommand = &cobra.Command{
 						Use:   p,
-						Short: currentRecipe.Short,
-						Long:  currentRecipe.Long,
+						Short: currentRecipe.Help.Short,
+						Long:  currentRecipe.Help.Long,
 					}
 					commands[p] = currentCommand
 				} else {

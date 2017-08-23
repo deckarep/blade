@@ -1,14 +1,16 @@
-# At a minimum you need a command.
-Command = "hostname"
+[Required]
+  # At a minimum you need a command.
+  Command = "hostname"
 
-# And a predifined list of hardcoded hosts.
-Hosts = ["blade-dev", "blade-prod", "blade-integ"]
+  # And a predifined list of hardcoded hosts.
+  Hosts = ["blade-dev", "blade-prod", "blade-integ"]
 
-# But you can specifiy a concurrency limit (default 1)
-Concurrency = 3
+[Overrides]
+  # But you can specifiy a concurrency limit (default 1)
+  Concurrency = 3
 
-# And a login user (default root)
-User = "root"
+  # And a login user (default root)
+  User = "root"
 
 [Resilience]
   WaitDuration = "5s"

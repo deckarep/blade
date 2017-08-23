@@ -119,31 +119,31 @@ var runCmd = &cobra.Command{
 
 // TODO: most of this code was copied from the ssh command code above
 // TODO: REFACTOR BRO
-func startSSHSession(recipe *Recipe) {
+func startSSHSession(recipe *BladeRecipe) {
 	// Assumme root.
-	if recipe.User == "" {
-		recipe.User = "root"
+	if recipe.Overrides.User == "" {
+		recipe.Overrides.User = "root"
 	}
 
 	sshConfig := &ssh.ClientConfig{
-		User: recipe.User,
+		User: recipe.Overrides.User,
 		Auth: []ssh.AuthMethod{
 			sshAgent(),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	sshCmd := recipe.Command
+	sshCmd := recipe.Required.Command
 
 	// Concurrency must be at least 1 to make progress.
-	if recipe.Concurrency == 0 {
-		recipe.Concurrency = 1
+	if recipe.Overrides.Concurrency == 0 {
+		recipe.Overrides.Concurrency = 1
 	}
 
-	concurrencySem = make(chan int, recipe.Concurrency)
+	concurrencySem = make(chan int, recipe.Overrides.Concurrency)
 	go consumeAndLimitConcurrency(sshConfig, sshCmd)
 
-	allHosts := recipe.Hosts
+	allHosts := recipe.Required.Hosts
 	totalHosts := len(allHosts)
 	for _, h := range allHosts {
 		startHost(h)
