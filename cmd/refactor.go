@@ -102,7 +102,7 @@ func init() {
 	sem = make(chan int, concurrencyLevel)
 
 	// Adds commands to root.
-	RootCmd.AddCommand(sshCmd)
+	RootCmd.AddCommand(runCmd)
 }
 
 func startRootCmd() {
