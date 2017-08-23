@@ -267,6 +267,8 @@ func generateCommandLine() {
 
 				// If we're not a dir but a blade.toml...set it up to Run.
 				if strings.HasSuffix(p, "blade.toml") {
+					// Set the Use to just {recipe-name} of {recipe-name}.blade.toml.
+					currentCommand.Use = strings.TrimSuffix(p, ".blade.toml")
 					currentCommand.Run = func(cmd *cobra.Command, args []string) {
 						// It's probably better to not compile the properties like this
 						// And instead just kick off the work pointing to the .blade.toml file
