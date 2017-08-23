@@ -311,9 +311,10 @@ func generateCommandLine() {
 						// on demand, should you change the file you don't have to regenerate.
 						// Therefore regenerating speeds up the startup of the program but doesn't bake in the end result of each command.
 						// The generate command is only going to be useful when a user starts having on the order of 100s of commands.
-						fmt.Println("Recipe Command:", currentRecipe.Command)
-						fmt.Println("Hosts: ", currentRecipe.Hosts)
-						fmt.Println("HostsLookupCommand:", currentRecipe.HostLookupCommand)
+						// fmt.Println("Recipe Command:", currentRecipe.Command)
+						// fmt.Println("Hosts: ", currentRecipe.Hosts)
+						// fmt.Println("HostsLookupCommand:", currentRecipe.HostLookupCommand)
+						//fmt.Printf("current recipe: %+v\n", currentRecipe)
 						startSSHSession(currentRecipe)
 					}
 				}

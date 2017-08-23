@@ -28,6 +28,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -45,9 +46,11 @@ var (
 
 // App variables
 var (
-	concurrencySem chan int
-	hostQueue      = make(chan string)
-	hostWg         sync.WaitGroup
+	concurrencySem        chan int
+	hostQueue             = make(chan string)
+	hostWg                sync.WaitGroup
+	successfullyCompleted int32
+	failedCompleted       int32
 )
 
 // blade ssh deploy-cloud-server-a // matches a recipe and therefore will follow the recipe guidelines against servers defined in recipe
@@ -117,6 +120,11 @@ var runCmd = &cobra.Command{
 // TODO: most of this code was copied from the ssh command code above
 // TODO: REFACTOR BRO
 func startSSHSession(recipe *Recipe) {
+	// Assumme root.
+	if recipe.User == "" {
+		recipe.User = "root"
+	}
+
 	sshConfig := &ssh.ClientConfig{
 		User: recipe.User,
 		Auth: []ssh.AuthMethod{
@@ -126,6 +134,11 @@ func startSSHSession(recipe *Recipe) {
 	}
 
 	sshCmd := recipe.Command
+
+	// Concurrency must be at least 1 to make progress.
+	if recipe.Concurrency == 0 {
+		recipe.Concurrency = 1
+	}
 
 	concurrencySem = make(chan int, recipe.Concurrency)
 	go consumeAndLimitConcurrency(sshConfig, sshCmd)
@@ -137,7 +150,10 @@ func startSSHSession(recipe *Recipe) {
 	}
 
 	hostWg.Wait()
-	log.Print(color.GreenString(fmt.Sprintf("Finished: x out of %d.", totalHosts)))
+	log.Print(color.GreenString(fmt.Sprintf("Recipe {name} Completed: %d sucess | %d failed | %d total",
+		atomic.LoadInt32(&successfullyCompleted),
+		atomic.LoadInt32(&failedCompleted),
+		totalHosts)))
 }
 
 func startHost(host string) {
@@ -212,7 +228,7 @@ func doSSH(sshConfig *ssh.ClientConfig, hostname string, command string) {
 	}
 
 	currentHost := strings.Split(hostname, ":")[0]
-	logHost := color.GreenString(currentHost)
+	logHost := color.GreenString(currentHost + ":")
 
 	for scanner.Scan() {
 		fmt.Println(logHost + " " + scanner.Text())
@@ -221,4 +237,6 @@ func doSSH(sshConfig *ssh.ClientConfig, hostname string, command string) {
 	if err := scanner.Err(); err != nil {
 		fmt.Print(color.RedString(currentHost) + ": Error reading output from this host.")
 	}
+
+	atomic.AddInt32(&successfullyCompleted, 1)
 }

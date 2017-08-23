@@ -1,16 +1,28 @@
-# restarts the mail-server the proper way and always ensure all proper ports are bound.
-Name = "restart"
-User = "deckarep"
-Short = "restarts some server"
-Long = "restarts some server and also blah blah blah...and additionally"
-Usage = "restart"
-PromptBanner = "This will restart mail-server and cause a small backlog to occur"
-Concurrency = 3
+# At a minimum you need a command.
 Command = "hostname"
-# TODO: implement https://github.com/cenkalti/backoff
-Retries = 3
-RetryBackStrategy = ""
-FailBatch = false
-PauseDuration = "10s"
-# HostLookupCommand = "ips prod mail-server"
-Hosts = ["blade.local", "blade.dev.local", "blade.prod.local"]
+
+# And a predifined list of hardcoded hosts.
+Hosts = ["blade-dev", "blade-prod", "blade-integ"]
+
+# But you can specifiy a concurrency limit (default 1)
+Concurrency = 3
+
+# And a login user (default root)
+User = "root"
+
+[Resilience]
+  WaitDuration = "5s"
+  Retries = 3
+  RetryBackoffStrategy = "Exponential"
+  RetryBackoffMultiplier = "5s"
+  FailBatch = true
+
+[Help]
+  Short = "Does something cool"
+  Long = "This recipe does something cool and also makes sure to blah...blah...blah. Also it's supposed to ensure that blah blah and so you can be assured that it works great."
+  Usage = "boom"
+
+[Interaction]
+  Banner = "Are you sure you want to continue?"
+  PromptBanner = true
+  PromptColor = "red"
