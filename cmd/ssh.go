@@ -23,7 +23,7 @@ func init() {
 }
 
 var sshCmd = &cobra.Command{
-	Use:   "ssh",
+	Use:   "ssh [host]",
 	Short: "ssh [host]",
 	Long:  "ssh [host] will log into specified host using ssh. If the command matches a recipe name first, the recipe will be used in place of the command.",
 	Run: func(cmd *cobra.Command, args []string) {
