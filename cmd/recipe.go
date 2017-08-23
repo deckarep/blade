@@ -97,21 +97,21 @@ var recipeTestCmd = &cobra.Command{
 
 func NewRecipe() *BladeRecipe {
 	return &BladeRecipe{
-		Overrides:   &OverridesRecipe{},
 		Required:    &RequiredRecipe{},
-		Resilience:  &ResilienceRecipe{},
+		Overrides:   &OverridesRecipe{},
 		Help:        &HelpRecipe{},
 		Interaction: &InteractionRecipe{},
+		Resilience:  &ResilienceRecipe{},
 	}
 }
 
 // BladeRecipe is the root recipe type.
 type BladeRecipe struct {
-	Overrides   *OverridesRecipe
 	Required    *RequiredRecipe
-	Resilience  *ResilienceRecipe
+	Overrides   *OverridesRecipe
 	Help        *HelpRecipe
 	Interaction *InteractionRecipe
+	Resilience  *ResilienceRecipe
 }
 
 // This block is for prototyping a good design.
@@ -124,6 +124,10 @@ type RequiredRecipe struct {
 type OverridesRecipe struct {
 	Concurrency int
 	User        string
+	// HostLookupCacheDisabled indicates that you want HostLookupCommand's to never be cached based on global settings.
+	HostLookupCacheDisabled bool
+	// HostLookupCacheDuration specifies the amount of time to utilize cache before refreshing the host list.
+	HostLookupCacheDuration string
 }
 
 type HelpRecipe struct {
@@ -151,13 +155,13 @@ var recipeDumpCmd = &cobra.Command{
 	Short: "dumps a recipe",
 	Run: func(cmd *cobra.Command, args []string) {
 		s := &BladeRecipe{
-			Overrides: &OverridesRecipe{
-				Concurrency: 7,
-				User:        "john",
-			},
 			Required: &RequiredRecipe{
 				Command: "hostname",
 				Hosts:   []string{"blade.local", "blade.prod.local", "blade.integ.local"},
+			},
+			Overrides: &OverridesRecipe{
+				Concurrency: 7,
+				User:        "john",
 			},
 			Resilience: &ResilienceRecipe{
 				WaitDuration:           "5s", // <-- time to sleep after command exits.
@@ -234,7 +238,8 @@ func generateCommandLine() {
 			currentRecipe, err := loadRecipe(file)
 			if err != nil {
 				// TODO: don't fatal but skip recipe or log.
-				log.Fatal("Found a broken recipe that we can't load: ", err.Error())
+				log.Println("Found a broken recipe...skipping: ", err.Error())
+				continue
 			}
 
 			// parts[1:] drop the /recipe part.
@@ -245,6 +250,7 @@ func generateCommandLine() {
 				// Reason is: if you have the same folder name in different hiearchies you'll collide.
 				// Idea: Let user drop a .blade.toml file in a folder with a Short/Long
 				// This way we can add docs to describe command hiearchies when user uses the --help system.
+				recipeAlreadyFound := false
 				if _, ok := commands[p]; !ok {
 					// If not found create it.
 					currentCommand = &cobra.Command{
@@ -256,6 +262,7 @@ func generateCommandLine() {
 				} else {
 					// If found use it.
 					currentCommand = commands[p]
+					recipeAlreadyFound = true
 				}
 
 				// If we're not a dir but a blade.toml...set it up to Run.
@@ -276,10 +283,13 @@ func generateCommandLine() {
 					}
 				}
 
-				if lastCommand == nil {
-					recipeCmd.AddCommand(currentCommand)
-				} else {
-					lastCommand.AddCommand(currentCommand)
+				// Only add recipe nodes we haven't already found.
+				if !recipeAlreadyFound {
+					if lastCommand == nil {
+						recipeCmd.AddCommand(currentCommand)
+					} else {
+						lastCommand.AddCommand(currentCommand)
+					}
 				}
 
 				lastCommand = currentCommand
