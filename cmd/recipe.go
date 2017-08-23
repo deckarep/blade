@@ -48,7 +48,7 @@ import (
 // }
 
 func init() {
-	recipeCmd.AddCommand(recipeListCmd, recipeShowCmd, recipeValidateCmd, recipeTestCmd, recipeDumpCmd)
+	recipeCmd.AddCommand(recipeListCmd, recipeShowCmd, recipeValidateCmd, recipeTestCmd, recipeDumpCmd, recipeCreateCmd)
 	generateCommandLine()
 	RootCmd.AddCommand(recipeCmd)
 }
@@ -79,6 +79,14 @@ var recipeShowCmd = &cobra.Command{
 	Short: "show shows a recipe by name",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("I am going to show that recipe if it exists or error out.")
+	},
+}
+
+var recipeCreateCmd = &cobra.Command{
+	Use:   "create [path/to/recipe]",
+	Short: "creates a new recipe template file",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("This command will create a new recipe in the specified location.")
 	},
 }
 
