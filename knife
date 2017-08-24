@@ -1,0 +1,31 @@
+#!/usr/bin/env python
+import sys
+
+# This is a mock host lookup tool to simulate dynamic lookups of hosts.
+hosts = set([
+    "blade-dev",
+    "blade-dev-a",
+    "blade-dev-a",
+    "blade-dev-a",
+    "blade-integ",
+    "blade-integ-a",
+    "blade-prod",
+    "blade-prod-a",
+    "blade-prod-b",
+    "blade-prod-c",
+    "blade-prod-d"
+])
+
+def fatal():
+    print "Arguments incorrect; do: 'knife node search {substring}''"
+    sys.exit(1)
+
+if len(sys.argv) != 4:
+    fatal()
+if sys.argv[1] != "node":
+    fatal()
+if sys.argv[2] != "search":
+    fatal()
+
+foundHosts = [h for h in hosts if sys.argv[3] in h]
+print ",".join(foundHosts)

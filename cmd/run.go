@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os/exec"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -144,6 +145,18 @@ func startSSHSession(recipe *BladeRecipe) {
 	go consumeAndLimitConcurrency(sshConfig, sshCmd)
 
 	allHosts := recipe.Required.Hosts
+	if len(allHosts) == 0 {
+		// otherwise do dynamic host lookup here.
+		commandSlice := strings.Split(recipe.Required.HostLookupCommand, " ")
+		out, err := exec.Command(commandSlice[0], commandSlice[1:]...).Output()
+		if err != nil {
+			fmt.Println("Couldn't execute command:", err.Error())
+			return
+		}
+
+		allHosts = strings.Split(string(out), ",")
+	}
+
 	totalHosts := len(allHosts)
 	for _, h := range allHosts {
 		startHost(h)
