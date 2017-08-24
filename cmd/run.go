@@ -144,9 +144,10 @@ func startSSHSession(recipe *BladeRecipe) {
 	concurrencySem = make(chan int, recipe.Overrides.Concurrency)
 	go consumeAndLimitConcurrency(sshConfig, sshCmd)
 
+	// If Hosts is defined, just use that as a discrete list.
 	allHosts := recipe.Required.Hosts
 	if len(allHosts) == 0 {
-		// otherwise do dynamic host lookup here.
+		// Otherwise do dynamic host lookup here.
 		commandSlice := strings.Split(recipe.Required.HostLookupCommand, " ")
 		out, err := exec.Command(commandSlice[0], commandSlice[1:]...).Output()
 		if err != nil {
@@ -155,6 +156,9 @@ func startSSHSession(recipe *BladeRecipe) {
 		}
 
 		allHosts = strings.Split(string(out), ",")
+	} else {
+		fmt.Println("Error: Either Hosts or HostLookupCommand must be specified.")
+		return
 	}
 
 	totalHosts := len(allHosts)
