@@ -36,7 +36,10 @@ type BladeRecipe struct {
 
 // This block is for prototyping a good design.
 type RequiredRecipe struct {
-	Command           string
+	// Allows a single command to be executed for a given server session.
+	Command string
+	// Allows for a series of commands to be executed within a single server session.
+	Commands          []string
 	Hosts             []string `toml:"Hosts,omitempty"`             // Must specify one or the other.
 	HostLookupCommand string   `toml:"HostLookupCommand,omitempty"` // What happens if both are?
 }

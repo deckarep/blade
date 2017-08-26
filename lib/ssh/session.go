@@ -3,8 +3,10 @@ package ssh
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -39,7 +41,10 @@ func StartSSHSession(recipe *recipe.BladeRecipe, port int) {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	sshCmd := recipe.Required.Command
+	sshCmds := []string{recipe.Required.Command}
+	if len(sshCmds[0]) == 0 {
+		sshCmds = recipe.Required.Commands
+	}
 
 	// Concurrency must be at least 1 to make progress.
 	if recipe.Overrides.Concurrency == 0 {
@@ -47,7 +52,7 @@ func StartSSHSession(recipe *recipe.BladeRecipe, port int) {
 	}
 
 	concurrencySem = make(chan int, recipe.Overrides.Concurrency)
-	go consumeAndLimitConcurrency(sshConfig, sshCmd)
+	go consumeAndLimitConcurrency(sshConfig, sshCmds)
 
 	// If Hosts is defined, just use that as a discrete list.
 	allHosts := recipe.Required.Hosts
@@ -101,7 +106,7 @@ func startHost(host string, port int) {
 	hostWg.Add(1)
 }
 
-func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, command string) {
+func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, command []string) {
 	for host := range hostQueue {
 		concurrencySem <- 1
 		go func(h string) {
@@ -114,7 +119,7 @@ func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, command string) {
 	}
 }
 
-func doSSH(sshConfig *ssh.ClientConfig, hostname string, command string) {
+func doSSH(sshConfig *ssh.ClientConfig, hostname string, commands []string) {
 	var finalError error
 	defer func() {
 		if finalError != nil {
@@ -129,6 +134,26 @@ func doSSH(sshConfig *ssh.ClientConfig, hostname string, command string) {
 		return
 	}
 
+	// Since we can run multiple commands, we need to keep track of intermediate failures
+	// and log accordingly or do some type of aggregate report.
+	for _, cmd := range commands {
+		doSingleSSHCommand(client, hostname, cmd)
+	}
+
+	// Technically this is only successful when errors didn't occur above.
+	atomic.AddInt32(&successfullyCompleted, 1)
+}
+
+// doSingleSSHCommand - the rule is one command can only ever occur per session.
+func doSingleSSHCommand(client *ssh.Client, hostname, command string) {
+	var finalError error
+	defer func() {
+		if finalError != nil {
+			log.Println(color.YellowString(hostname) + fmt.Sprintf(" error %s", finalError.Error()))
+			//hostErrorSet.Add(hostname)
+		}
+	}()
+
 	// Each ClientConn can support multiple interactive sessions,
 	// represented by a Session.
 	session, err := client.NewSession()
@@ -142,12 +167,19 @@ func doSSH(sshConfig *ssh.ClientConfig, hostname string, command string) {
 	if err != nil {
 		log.Fatal("Couldn't create pipe to session stdout... :(")
 	}
+
+	// This is just a demo of how to not use buffering get immediate output.
+	// This way is useful when you don't want to have to wait for buffering such as
+	// echo 'sleeping for 5 seconds' && sleep 5
+	// Note: just comment this out to go back to regular line scanning.
+	go io.Copy(os.Stdout, out)
+
 	scanner := bufio.NewScanner(out)
 
 	// Once a Session is created, you can execute a single command on
 	// the remote side using the Run method.
 	if err := session.Run(command); err != nil {
-		log.Printf("Failed to run command: %s", err.Error())
+		log.Printf("Failed to run the command: %s", err.Error())
 	}
 
 	currentHost := strings.Split(hostname, ":")[0]
@@ -160,6 +192,24 @@ func doSSH(sshConfig *ssh.ClientConfig, hostname string, command string) {
 	if err := scanner.Err(); err != nil {
 		fmt.Print(color.RedString(currentHost) + ": Error reading output from this host.")
 	}
-
-	atomic.AddInt32(&successfullyCompleted, 1)
 }
+
+// Notes: the above uses a buffer
+// An alternative way to wire up the output is to just copy data from one end to another
+// stdin, err := session.StdinPipe()
+// if err != nil {
+// 	return fmt.Errorf("Unable to setup stdin for session: %v", err)
+// }
+// go io.Copy(stdin, os.Stdin)
+
+// stdout, err := session.StdoutPipe()
+// if err != nil {
+// 	return fmt.Errorf("Unable to setup stdout for session: %v", err)
+// }
+// go io.Copy(os.Stdout, stdout)
+
+// stderr, err := session.StderrPipe()
+// if err != nil {
+// 	return fmt.Errorf("Unable to setup stderr for session: %v", err)
+// }
+// go io.Copy(os.Stderr, stderr)

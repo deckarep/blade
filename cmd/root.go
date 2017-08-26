@@ -25,37 +25,35 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// TODO: scan through users recipe/ folder hierarchy looking for all *.blade.toml files
+// Upon finding the files, build a Cobra Command hierarchy and cache that data-structre in BoltDB
+// This way we don't have to do it each time...OR have an outside step that generates the hierarchy.
+
+// Blade is opinioned on how the recipe/ folder works
+// but not opinioned on how you structure it to match your infrastructure
+
+// Example:
+// recipe/infra-a/mail-server/deploy.blade.toml
+// recipe/infra-a/mail-server/restart.blade.toml
+// recipe/infra-a/mail-server/mail/check-service.blade.toml
+// recipe/infra-a/mail-server/mail/purge.blade.toml
+// recipe/infra-b/audit-services.blade.toml
+
+// In the example above, each folder is a subcommand that itself doesn't do anything but has more subcommands.
+// Each terminating blade.toml file is the actual command.
+
+// So from an API perspective:
+
+// To purge your mail services:
+// blade ssh infra-a mail-server mail purge
+
+// To deploy your mail-server
+// blade ssh infra-a mail-server deploy
+
+// To audit all your services under infrastructure b
+// blade ssh infra-b audit-services
+
 var RootCmd = &cobra.Command{
 	Use:   "blade",
 	Short: "blade: a modern ssh command runner built in Go.",
-}
-
-func init() {
-	// TODO: scan through users recipe/ folder hierarchy looking for all *.blade.toml files
-	// Upon finding the files, build a Cobra Command hierarchy and cache that data-structre in BoltDB
-	// This way we don't have to do it each time...OR have an outside step that generates the hierarchy.
-
-	// Blade is opinioned on how the recipe/ folder works
-	// but not opinioned on how you structure it to match your infrastructure
-
-	// Example:
-	// recipe/infra-a/mail-server/deploy.blade.toml
-	// recipe/infra-a/mail-server/restart.blade.toml
-	// recipe/infra-a/mail-server/mail/check-service.blade.toml
-	// recipe/infra-a/mail-server/mail/purge.blade.toml
-	// recipe/infra-b/audit-services.blade.toml
-
-	// In the example above, each folder is a subcommand that itself doesn't do anything but has more subcommands.
-	// Each terminating blade.toml file is the actual command.
-
-	// So from an API perspective:
-
-	// To purge your mail services:
-	// blade ssh infra-a mail-server mail purge
-
-	// To deploy your mail-server
-	// blade ssh infra-a mail-server deploy
-
-	// To audit all your services under infrastructure b
-	// blade ssh infra-b audit-services
 }
