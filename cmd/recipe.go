@@ -34,6 +34,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const a = 5
+
 // // StepRecipe is an ordered series of recipes that will be attempted in the specified order.
 // // The parameters specified in this recipe supercede the parameters in the individual recipe.
 // type StepRecipe struct {
@@ -110,6 +112,7 @@ func NewRecipe() *BladeRecipe {
 		Help:        &HelpRecipe{},
 		Interaction: &InteractionRecipe{},
 		Resilience:  &ResilienceRecipe{},
+		Meta:        &MetaRecipe{},
 	}
 }
 
@@ -120,6 +123,7 @@ type BladeRecipe struct {
 	Help        *HelpRecipe
 	Interaction *InteractionRecipe
 	Resilience  *ResilienceRecipe
+	Meta        *MetaRecipe
 }
 
 // This block is for prototyping a good design.
@@ -156,6 +160,11 @@ type ResilienceRecipe struct {
 	RetryBackoffStrategy   string
 	RetryBackoffMultiplier string // <-- this is a duration like 5s
 	FailBatch              bool
+}
+
+type MetaRecipe struct {
+	Name     string
+	Filename string
 }
 
 var recipeDumpCmd = &cobra.Command{
@@ -251,7 +260,11 @@ func generateCommandLine() {
 			}
 
 			// parts[1:] drop the /recipe part.
-			for _, p := range parts[1:] {
+			remainingParts := parts[1:]
+			currentRecipe.Meta.Name = strings.TrimSuffix(strings.Join(remainingParts, "."), ".blade.toml")
+			currentRecipe.Meta.Filename = file
+
+			for _, p := range remainingParts {
 				var currentCommand *cobra.Command
 
 				// Known bug, we need to dedup these, but add them to a map based on their full path.

@@ -146,6 +146,7 @@ func startSSHSession(recipe *BladeRecipe) {
 
 	// If Hosts is defined, just use that as a discrete list.
 	allHosts := recipe.Required.Hosts
+
 	if len(allHosts) == 0 {
 		// Otherwise do dynamic host lookup here.
 		commandSlice := strings.Split(recipe.Required.HostLookupCommand, " ")
@@ -156,10 +157,9 @@ func startSSHSession(recipe *BladeRecipe) {
 		}
 
 		allHosts = strings.Split(string(out), ",")
-	} else {
-		fmt.Println("Error: Either Hosts or HostLookupCommand must be specified.")
-		return
 	}
+
+	log.Print(color.GreenString(fmt.Sprintf("Starting recipe: %s", recipe.Meta.Name)))
 
 	totalHosts := len(allHosts)
 	for _, h := range allHosts {
@@ -167,7 +167,8 @@ func startSSHSession(recipe *BladeRecipe) {
 	}
 
 	hostWg.Wait()
-	log.Print(color.GreenString(fmt.Sprintf("Recipe {name} Completed: %d sucess | %d failed | %d total",
+	log.Print(color.GreenString(fmt.Sprintf("Completed recipe: %s - %d sucess | %d failed | %d total",
+		recipe.Meta.Name,
 		atomic.LoadInt32(&successfullyCompleted),
 		atomic.LoadInt32(&failedCompleted),
 		totalHosts)))
