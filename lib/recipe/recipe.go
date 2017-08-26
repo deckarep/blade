@@ -11,6 +11,19 @@ func NewRecipe() *BladeRecipe {
 	}
 }
 
+// // StepRecipe is an ordered series of recipes that will be attempted in the specified order.
+// // The parameters specified in this recipe supercede the parameters in the individual recipe.
+// type StepRecipe struct {
+// 	// Hmmm...does a step recipe inherit the properties above? Or does it have it's own similar specialized properties.
+// 	Recipe
+// 	Steps             []*Recipe
+// 	StepPauseDuration string
+// }
+
+// type AggregateRecipe struct {
+// 	Recipe
+// }
+
 // BladeRecipe is the root recipe type.
 type BladeRecipe struct {
 	Required    *RequiredRecipe

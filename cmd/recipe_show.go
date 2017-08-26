@@ -22,14 +22,19 @@ SOFTWARE.
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	RootCmd.AddCommand(cacheCmd)
+	recipeCmd.AddCommand(recipeShowCmd)
 }
 
-var cacheCmd = &cobra.Command{
-	Use:   "cache",
-	Short: "cache does operations against the Blade database file.",
+var recipeShowCmd = &cobra.Command{
+	Use:   "show [recipe-name]",
+	Short: "show shows a recipe by name",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("I am going to show that recipe if it exists or error out.")
+	},
 }

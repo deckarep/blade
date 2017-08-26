@@ -22,14 +22,19 @@ SOFTWARE.
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	RootCmd.AddCommand(cacheCmd)
+	recipeCmd.AddCommand(recipeValidateCmd)
 }
 
-var cacheCmd = &cobra.Command{
-	Use:   "cache",
-	Short: "cache does operations against the Blade database file.",
+var recipeValidateCmd = &cobra.Command{
+	Use:   "validate [recipe-name]",
+	Short: "validates that your recipe is correctly defined",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("I am validating your recipe")
+	},
 }

@@ -27,6 +27,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/deckarep/blade/lib/recipe"
 	bladessh "github.com/deckarep/blade/lib/ssh"
 	"github.com/spf13/cobra"
 )
@@ -102,7 +103,7 @@ func generateCommandLine() {
 			var lastCommand *cobra.Command
 			lastCommand = nil
 
-			currentRecipe, err := loadRecipe(file)
+			currentRecipe, err := recipe.LoadRecipe(file)
 			if err != nil {
 				// TODO: don't fatal but skip recipe or log.
 				log.Println("Found a broken recipe...skipping: ", err.Error())

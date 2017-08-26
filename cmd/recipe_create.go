@@ -22,14 +22,19 @@ SOFTWARE.
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	RootCmd.AddCommand(cacheCmd)
+	recipeCmd.AddCommand(recipeCreateCmd)
 }
 
-var cacheCmd = &cobra.Command{
-	Use:   "cache",
-	Short: "cache does operations against the Blade database file.",
+var recipeCreateCmd = &cobra.Command{
+	Use:   "create [path/to/recipe]",
+	Short: "creates a new recipe template file",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("This command will create a new recipe in the specified location.")
+	},
 }

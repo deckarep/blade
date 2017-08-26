@@ -22,14 +22,19 @@ SOFTWARE.
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	RootCmd.AddCommand(cacheCmd)
+	recipeCmd.AddCommand(recipeListCmd)
 }
 
-var cacheCmd = &cobra.Command{
-	Use:   "cache",
-	Short: "cache does operations against the Blade database file.",
+var recipeListCmd = &cobra.Command{
+	Use:   "list [search-constraint]",
+	Short: "list lists all your recipes or those by a search constraint",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("list yo recipes")
+	},
 }

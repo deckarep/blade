@@ -18,18 +18,30 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-
 package cmd
 
 import (
+	"log"
+	"os"
+
+	"github.com/BurntSushi/toml"
+	"github.com/deckarep/blade/lib/recipe"
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	RootCmd.AddCommand(cacheCmd)
+	recipeCmd.AddCommand(recipeTestCmd)
 }
 
-var cacheCmd = &cobra.Command{
-	Use:   "cache",
-	Short: "cache does operations against the Blade database file.",
+var recipeTestCmd = &cobra.Command{
+	Use:   "test [recipe-name]",
+	Short: "test is internally used for testing this code",
+	Run: func(cmd *cobra.Command, args []string) {
+		rec, err := recipe.LoadRecipe("recipes/arsenic/mail-server/restart.blade.toml")
+
+		err = toml.NewEncoder(os.Stdout).Encode(rec)
+		if err != nil {
+			log.Fatal("Failed to encode your recipe sucka!")
+		}
+	},
 }
