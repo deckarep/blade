@@ -27,7 +27,7 @@ import (
 
 var RootCmd = &cobra.Command{
 	Use:   "blade",
-	Short: "do blade stuff",
+	Short: "blade: a modern ssh command runner built in Go.",
 }
 
 func init() {

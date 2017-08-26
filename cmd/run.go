@@ -22,18 +22,13 @@ SOFTWARE.
 package cmd
 
 import (
-	"bufio"
-	"fmt"
 	"log"
-	"net"
-	"os/exec"
+	"os"
+	"path/filepath"
 	"strings"
-	"sync"
-	"sync/atomic"
 
-	"github.com/fatih/color"
+	bladessh "github.com/deckarep/blade/lib/ssh"
 	"github.com/spf13/cobra"
-	"golang.org/x/crypto/ssh"
 )
 
 // Flag variables
@@ -43,15 +38,6 @@ var (
 	hosts       string
 	port        int
 	user        string
-)
-
-// App variables
-var (
-	concurrencySem        chan int
-	hostQueue             = make(chan string)
-	hostWg                sync.WaitGroup
-	successfullyCompleted int32
-	failedCompleted       int32
 )
 
 // blade ssh deploy-cloud-server-a // matches a recipe and therefore will follow the recipe guidelines against servers defined in recipe
@@ -79,182 +65,109 @@ var (
 // 9. A seperate bolt database stores hosts cache for speed.
 
 func init() {
+	generateCommandLine()
 	runCmd.Flags().StringVarP(&hosts, "hosts", "x", "", "--hosts flag is one or more comma delimited hosts.")
 	runCmd.Flags().IntVarP(&concurrency, "concurrency", "c", 1, "Max concurrency when running ssh commands")
 	runCmd.Flags().IntVarP(&retries, "retries", "r", 3, "Number of times to retry until a successful command returns")
 	runCmd.Flags().IntVarP(&port, "port", "p", 22, "The ssh port to use")
 	runCmd.Flags().StringVarP(&user, "user", "u", "root", "--user for ssh")
+	RootCmd.AddCommand(runCmd)
 }
 
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "run [command]",
-	Long:  "run [command] will execute the [command] on all servers. If the command matches a recipe name first, the recipe will be used in place of the command.",
-	Run: func(cmd *cobra.Command, args []string) {
-		sshConfig := &ssh.ClientConfig{
-			User: user,
-			Auth: []ssh.AuthMethod{
-				sshAgent(),
-			},
-			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		}
-
-		sshCmd := "hostname"
-		if len(args) > 0 {
-			sshCmd = args[0]
-		}
-
-		concurrencySem = make(chan int, concurrency)
-		go consumeAndLimitConcurrency(sshConfig, sshCmd)
-
-		allHosts := strings.Split(hosts, ",")
-		totalHosts := len(allHosts)
-		for _, h := range allHosts {
-			startHost(h)
-		}
-
-		hostWg.Wait()
-		log.Print(color.GreenString(fmt.Sprintf("Finished: x out of %d.", totalHosts)))
-	},
 }
 
-// TODO: most of this code was copied from the ssh command code above
-// TODO: REFACTOR BRO
-func startSSHSession(recipe *BladeRecipe) {
-	// Assumme root.
-	if recipe.Overrides.User == "" {
-		recipe.Overrides.User = "root"
+func generateCommandLine() {
+	rootRecipeFolder := "recipes/"
+
+	fileList := []string{}
+	err := filepath.Walk(rootRecipeFolder, func(path string, f os.FileInfo, err error) error {
+		fileList = append(fileList, path)
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal("Failed to generate recipe data")
 	}
 
-	sshConfig := &ssh.ClientConfig{
-		User: recipe.Overrides.User,
-		Auth: []ssh.AuthMethod{
-			sshAgent(),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
+	commands := make(map[string]*cobra.Command)
 
-	sshCmd := recipe.Required.Command
+	// For now let's skip the global.blade.toml file.
+	for _, file := range fileList {
+		if strings.HasSuffix(file, ".blade.toml") &&
+			!strings.Contains(file, "global.blade.toml") {
+			parts := strings.Split(file, "/")
+			var lastCommand *cobra.Command
+			lastCommand = nil
 
-	// Concurrency must be at least 1 to make progress.
-	if recipe.Overrides.Concurrency == 0 {
-		recipe.Overrides.Concurrency = 1
-	}
+			currentRecipe, err := loadRecipe(file)
+			if err != nil {
+				// TODO: don't fatal but skip recipe or log.
+				log.Println("Found a broken recipe...skipping: ", err.Error())
+				continue
+			}
 
-	concurrencySem = make(chan int, recipe.Overrides.Concurrency)
-	go consumeAndLimitConcurrency(sshConfig, sshCmd)
+			// parts[1:] drop the /recipe part.
+			remainingParts := parts[1:]
+			currentRecipe.Meta.Name = strings.TrimSuffix(strings.Join(remainingParts, "."), ".blade.toml")
+			currentRecipe.Meta.Filename = file
 
-	// If Hosts is defined, just use that as a discrete list.
-	allHosts := recipe.Required.Hosts
+			for _, p := range remainingParts {
+				var currentCommand *cobra.Command
 
-	if len(allHosts) == 0 {
-		// Otherwise do dynamic host lookup here.
-		commandSlice := strings.Split(recipe.Required.HostLookupCommand, " ")
-		out, err := exec.Command(commandSlice[0], commandSlice[1:]...).Output()
-		if err != nil {
-			fmt.Println("Couldn't execute command:", err.Error())
-			return
+				// Known bug, we need to dedup these, but add them to a map based on their full path.
+				// Reason is: if you have the same folder name in different hiearchies you'll collide.
+				// Idea: Let user drop a .blade.toml file in a folder with a Short/Long
+				// This way we can add docs to describe command hiearchies when user uses the --help system.
+				recipeAlreadyFound := false
+				if _, ok := commands[p]; !ok {
+					// If not found create it.
+					currentCommand = &cobra.Command{
+						Use:   p,
+						Short: currentRecipe.Help.Short,
+						Long:  currentRecipe.Help.Long,
+					}
+					commands[p] = currentCommand
+				} else {
+					// If found use it.
+					currentCommand = commands[p]
+					recipeAlreadyFound = true
+				}
+
+				// If we're not a dir but a blade.toml...set it up to Run.
+				if strings.HasSuffix(p, "blade.toml") {
+					// Set the Use to just {recipe-name} of {recipe-name}.blade.toml.
+					currentCommand.Use = strings.TrimSuffix(p, ".blade.toml")
+					currentCommand.Run = func(cmd *cobra.Command, args []string) {
+						// It's probably better to not compile the properties like this
+						// And instead just kick off the work pointing to the .blade.toml file
+						// This way, we defer loading of the file until the last minute of execution.
+						// This means you can regenerate your command hiearchy but since it loads the .blade.toml
+						// on demand, should you change the file you don't have to regenerate.
+						// Therefore regenerating speeds up the startup of the program but doesn't bake in the end result of each command.
+						// The generate command is only going to be useful when a user starts having on the order of 100s of commands.
+						// fmt.Println("Recipe Command:", currentRecipe.Command)
+						// fmt.Println("Hosts: ", currentRecipe.Hosts)
+						// fmt.Println("HostsLookupCommand:", currentRecipe.HostLookupCommand)
+						//fmt.Printf("current recipe: %+v\n", currentRecipe)
+						bladessh.StartSSHSession(currentRecipe, port)
+					}
+				}
+
+				// Only add recipe nodes we haven't already found.
+				if !recipeAlreadyFound {
+					if lastCommand == nil {
+						//recipeCmd.AddCommand(currentCommand)
+						runCmd.AddCommand(currentCommand)
+					} else {
+						lastCommand.AddCommand(currentCommand)
+					}
+				}
+
+				lastCommand = currentCommand
+			}
 		}
-
-		allHosts = strings.Split(string(out), ",")
 	}
-
-	log.Print(color.GreenString(fmt.Sprintf("Starting recipe: %s", recipe.Meta.Name)))
-
-	totalHosts := len(allHosts)
-	for _, h := range allHosts {
-		startHost(h)
-	}
-
-	hostWg.Wait()
-	log.Print(color.GreenString(fmt.Sprintf("Completed recipe: %s - %d sucess | %d failed | %d total",
-		recipe.Meta.Name,
-		atomic.LoadInt32(&successfullyCompleted),
-		atomic.LoadInt32(&failedCompleted),
-		totalHosts)))
-}
-
-func startHost(host string) {
-	trimmedHost := strings.TrimSpace(host)
-
-	// If it doesn't contain port :22 add it
-	if !strings.Contains(trimmedHost, ":") {
-		trimmedHost = fmt.Sprintf("%s:%d", trimmedHost, port)
-	}
-
-	// Ignore what you can't parse as host:port
-	_, _, err := net.SplitHostPort(trimmedHost)
-	if err != nil {
-		log.Printf("Couldn't parse: %s", trimmedHost)
-		return
-	}
-
-	//hostSet.Add(trimmedHost)
-
-	// Finally queue it up for processing
-	hostQueue <- trimmedHost
-	hostWg.Add(1)
-}
-
-func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, command string) {
-	for host := range hostQueue {
-		concurrencySem <- 1
-		go func(h string) {
-			defer func() {
-				<-concurrencySem
-				hostWg.Done()
-			}()
-			doSSH(sshConfig, h, command)
-		}(host)
-	}
-}
-
-func doSSH(sshConfig *ssh.ClientConfig, hostname string, command string) {
-	var finalError error
-	defer func() {
-		if finalError != nil {
-			log.Println(color.YellowString(hostname) + fmt.Sprintf(" error %s", finalError.Error()))
-			//hostErrorSet.Add(hostname)
-		}
-	}()
-
-	client, err := ssh.Dial("tcp", hostname, sshConfig)
-	if err != nil {
-		finalError = fmt.Errorf("Failed to dial remote host: %s", err.Error())
-		return
-	}
-
-	// Each ClientConn can support multiple interactive sessions,
-	// represented by a Session.
-	session, err := client.NewSession()
-	if err != nil {
-		finalError = fmt.Errorf("Failed to create session: %s", err.Error())
-		return
-	}
-	defer session.Close()
-
-	out, err := session.StdoutPipe()
-	if err != nil {
-		log.Fatal("Couldn't create pipe to session stdout... :(")
-	}
-	scanner := bufio.NewScanner(out)
-
-	// Once a Session is created, you can execute a single command on
-	// the remote side using the Run method.
-	if err := session.Run(command); err != nil {
-		log.Printf("Failed to run command: %s", err.Error())
-	}
-
-	currentHost := strings.Split(hostname, ":")[0]
-	logHost := color.GreenString(currentHost + ":")
-
-	for scanner.Scan() {
-		fmt.Println(logHost + " " + scanner.Text())
-	}
-
-	if err := scanner.Err(); err != nil {
-		fmt.Print(color.RedString(currentHost) + ": Error reading output from this host.")
-	}
-
-	atomic.AddInt32(&successfullyCompleted, 1)
 }
