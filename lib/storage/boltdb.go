@@ -30,22 +30,26 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-// Usage: go run main.go --help (for help)
-// Usage: go run main.go -k "chef_environment:production* AND role:filter"  -m 'sudo which jq || sudo yum -y install jq' -C 5
 const (
-	queryBucket = "queries"
+	// Stores your host lookups for a period of time.
+	hostLookupBucket = "hostLookupCacheBucket"
+	// Stores recipe caches so we don't have to regen every time. Speeds up Blade.
+	recipeCacheBucket = "recipeCommandCacheBucket"
 )
 
-// TODO: move ssh crap into it's own package
 var db *bolt.DB
 
-// Idea make this a running agent?
-// Agent is always refreshing in the background your most common queries?
-// It can update every 5 minutes and on failures will just log the error.
+func openDB() {
+	var err error
+	db, err = bolt.Open("blade-boltdb.db", 0644, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
-func storeBolt(key, value string) {
+func storeBolt(bucket, key, value string) {
 	err := db.Update(func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte(queryBucket))
+		bucket, err := tx.CreateBucketIfNotExists([]byte(bucket))
 		if err != nil {
 			return err
 		}
@@ -63,11 +67,11 @@ func storeBolt(key, value string) {
 	}
 }
 
-func getBolt(key string) string {
+func getBolt(bucket, key string) string {
 	result := ""
 	// retrieve the data
 	err := db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(queryBucket))
+		bucket := tx.Bucket([]byte(bucket))
 		if bucket == nil {
 			// Bucket not created yet
 			return nil
@@ -84,14 +88,6 @@ func getBolt(key string) string {
 	}
 
 	return result
-}
-
-func openDB() {
-	var err error
-	db, err = bolt.Open("blade-boltdb.db", 0644, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 func endOnSignal() {

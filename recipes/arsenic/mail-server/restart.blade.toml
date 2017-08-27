@@ -11,6 +11,9 @@
   # But you can specifiy a concurrency limit (default 1)
   Concurrency = 3
 
+  HostLookupCacheDisabled = false
+  HostLookupCacheDuration = "5m"
+
   # And a login user (default root)
   User = "root"
 

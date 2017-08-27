@@ -24,7 +24,6 @@ var (
 )
 
 // StartSSHSession kicks off a session of work.
-// TODO: This should take a recipe, and a struct of overrides.
 func StartSSHSession(recipe *recipe.BladeRecipe) {
 	// Assumme root.
 	if recipe.Overrides.User == "" {
