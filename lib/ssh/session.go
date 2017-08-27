@@ -3,6 +3,7 @@ package ssh
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"sync/atomic"
 
 	"github.com/deckarep/blade/lib/recipe"
+	humanize "github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"golang.org/x/crypto/ssh"
 )
@@ -130,8 +132,8 @@ func doSSH(sshConfig *ssh.ClientConfig, hostname string, commands []string) {
 
 	// Since we can run multiple commands, we need to keep track of intermediate failures
 	// and log accordingly or do some type of aggregate report.
-	for _, cmd := range commands {
-		doSingleSSHCommand(client, hostname, cmd)
+	for i, cmd := range commands {
+		doSingleSSHCommand(i+1, client, hostname, cmd)
 	}
 
 	// Technically this is only successful when errors didn't occur above.
@@ -139,7 +141,7 @@ func doSSH(sshConfig *ssh.ClientConfig, hostname string, commands []string) {
 }
 
 // doSingleSSHCommand - the rule is one command can only ever occur per session.
-func doSingleSSHCommand(client *ssh.Client, hostname, command string) {
+func doSingleSSHCommand(index int, client *ssh.Client, hostname, command string) {
 	var finalError error
 	defer func() {
 		if finalError != nil {
@@ -158,35 +160,37 @@ func doSingleSSHCommand(client *ssh.Client, hostname, command string) {
 
 	out, err := session.StdoutPipe()
 	if err != nil {
-		sessionLogger.Fatal("Couldn't create pipe to session stdout... :(")
+		finalError = fmt.Errorf("Couldn't create pipe to Stdout for session: %s", err.Error())
+		return
 	}
 
-	// This is just a demo of how to not use buffering get immediate output.
-	// This way is useful when you don't want to have to wait for buffering such as
-	// echo 'sleeping for 5 seconds' && sleep 5
-	// Note: just comment this out to go back to regular line scanning.
-	//go io.Copy(os.Stdout, out)
+	errOut, err := session.StderrPipe()
+	if err != nil {
+		finalError = fmt.Errorf("Couldn't create pipe to Stderr for session: %s", err.Error())
+		return
+	}
 
 	currentHost := strings.Split(hostname, ":")[0]
-	logHost := color.GreenString(currentHost + ":")
 
-	// Kick off the scanner async because we don't want to have to wait
-	// for the the Run command to finish before we start dumping data to
-	// the screen.
-	go func() {
-		scanner := bufio.NewScanner(out)
-		for scanner.Scan() {
-			sessionLogger.Println(logHost + " " + scanner.Text())
-		}
+	// Consume session Stdout, Stderr pipe async.
+	go consumeReaderPipes(currentHost, out)
+	go consumeReaderPipes(currentHost, errOut)
 
-		if err := scanner.Err(); err != nil {
-			sessionLogger.Print(color.RedString(currentHost) + ": Error reading output from this host.")
-		}
-	}()
-
-	// Once a Session is created, you can execute a single command on
-	// the remote side using the Run method.
+	// Once a Session is created, you can only ever execute a single command.
 	if err := session.Run(command); err != nil {
-		sessionLogger.Printf("Failed to run the command: %s", err.Error())
+		sessionLogger.Print(color.RedString(currentHost+":") + fmt.Sprintf(" Failed to run the %s command: `%s` - %s", humanize.Ordinal(index), command, err.Error()))
+	}
+}
+
+func consumeReaderPipes(host string, rdr io.Reader) {
+	logHost := color.CyanString(host + ":")
+
+	scanner := bufio.NewScanner(rdr)
+	for scanner.Scan() {
+		sessionLogger.Println(logHost + " " + scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		sessionLogger.Print(color.RedString(host) + ": Error reading output from this host.")
 	}
 }

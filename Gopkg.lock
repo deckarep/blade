@@ -14,10 +14,10 @@
   version = "v1.3.1"
 
 [[projects]]
-  name = "github.com/deckarep/golang-set"
+  branch = "master"
+  name = "github.com/dustin/go-humanize"
   packages = ["."]
-  revision = "fc8930a5e645572ee00bf66358ed3414f3c13b90"
-  version = "v1.6"
+  revision = "383332499bf02f79d3e696220c2713722438529c"
 
 [[projects]]
   name = "github.com/fatih/color"
@@ -70,6 +70,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "149704fe340f3f28858123a0be69d8468a71be4f716de9392205be7c301f9715"
+  inputs-digest = "0259559919714587d289c9cc4210addce5c5b68a4e76630631c1db82d376b7e7"
   solver-name = "gps-cdcl"
   solver-version = 1
