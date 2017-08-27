@@ -2,7 +2,7 @@
   Commands = [
     "hostname",
     "pwd",
-    "echo 'sleeping for 10 secs' && sleep 10",
+    "echo 'sleeping for 2 secs' && sleep 2",
     "echo 'hello world'",
     "date"
   ]

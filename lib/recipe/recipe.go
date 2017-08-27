@@ -48,10 +48,15 @@ type OverridesRecipe struct {
 	Port        int
 	Concurrency int
 	User        string
+
 	// HostLookupCacheDisabled indicates that you want HostLookupCommand's to never be cached based on global settings.
 	HostLookupCacheDisabled bool
+
 	// HostLookupCacheDuration specifies the amount of time to utilize cache before refreshing the host list.
 	HostLookupCacheDuration string
+
+	// HostRandomizeOrder will have Blade perform the command based on a random order of the hosts involved.
+	HostRandomizeOrder bool
 }
 
 type HelpRecipe struct {

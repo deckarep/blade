@@ -39,6 +39,7 @@ var (
 	hosts       string
 	port        int
 	user        string
+	quiet       bool
 )
 
 // blade ssh deploy-cloud-server-a // matches a recipe and therefore will follow the recipe guidelines against servers defined in recipe
@@ -72,6 +73,7 @@ func init() {
 	runCmd.PersistentFlags().IntVarP(&retries, "retries", "r", 3, "Number of times to retry until a successful command returns")
 	runCmd.PersistentFlags().IntVarP(&port, "port", "p", 22, "The ssh port to use")
 	runCmd.PersistentFlags().StringVarP(&user, "user", "u", "root", "--user for ssh")
+	runCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "--quiet mode will keep Blade as silent as possible.")
 	RootCmd.AddCommand(runCmd)
 }
 
