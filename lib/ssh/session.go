@@ -25,7 +25,7 @@ var (
 
 // StartSSHSession kicks off a session of work.
 // TODO: This should take a recipe, and a struct of overrides.
-func StartSSHSession(recipe *recipe.BladeRecipe, port int) {
+func StartSSHSession(recipe *recipe.BladeRecipe) {
 	// Assumme root.
 	if recipe.Overrides.User == "" {
 		recipe.Overrides.User = "root"
@@ -68,7 +68,7 @@ func StartSSHSession(recipe *recipe.BladeRecipe, port int) {
 
 	totalHosts := len(allHosts)
 	for _, h := range allHosts {
-		startHost(h, port)
+		startHost(h, recipe.Overrides.Port)
 	}
 
 	hostWg.Wait()

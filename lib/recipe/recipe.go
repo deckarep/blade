@@ -2,8 +2,10 @@ package recipe
 
 func NewRecipe() *BladeRecipe {
 	return &BladeRecipe{
-		Required:    &RequiredRecipe{},
-		Overrides:   &OverridesRecipe{},
+		Required: &RequiredRecipe{},
+		Overrides: &OverridesRecipe{
+			Port: 22,
+		},
 		Help:        &HelpRecipe{},
 		Interaction: &InteractionRecipe{},
 		Resilience:  &ResilienceRecipe{},
@@ -43,6 +45,7 @@ type RequiredRecipe struct {
 }
 
 type OverridesRecipe struct {
+	Port        int
 	Concurrency int
 	User        string
 	// HostLookupCacheDisabled indicates that you want HostLookupCommand's to never be cached based on global settings.

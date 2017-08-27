@@ -67,11 +67,11 @@ var (
 
 func init() {
 	generateCommandLine()
-	runCmd.Flags().StringVarP(&hosts, "hosts", "x", "", "--hosts flag is one or more comma delimited hosts.")
-	runCmd.Flags().IntVarP(&concurrency, "concurrency", "c", 1, "Max concurrency when running ssh commands")
-	runCmd.Flags().IntVarP(&retries, "retries", "r", 3, "Number of times to retry until a successful command returns")
-	runCmd.Flags().IntVarP(&port, "port", "p", 22, "The ssh port to use")
-	runCmd.Flags().StringVarP(&user, "user", "u", "root", "--user for ssh")
+	runCmd.PersistentFlags().StringVarP(&hosts, "hosts", "x", "", "--hosts flag is one or more comma-delimited hosts.")
+	runCmd.PersistentFlags().IntVarP(&concurrency, "concurrency", "c", 0, "Max concurrency when running ssh commands")
+	runCmd.PersistentFlags().IntVarP(&retries, "retries", "r", 3, "Number of times to retry until a successful command returns")
+	runCmd.PersistentFlags().IntVarP(&port, "port", "p", 22, "The ssh port to use")
+	runCmd.PersistentFlags().StringVarP(&user, "user", "u", "root", "--user for ssh")
 	RootCmd.AddCommand(runCmd)
 }
 
@@ -80,11 +80,9 @@ var runCmd = &cobra.Command{
 	Short: "run [command]",
 }
 
-func generateCommandLine() {
-	rootRecipeFolder := "recipes/"
-
+func scanBladeFolder(rootFolder string) []string {
 	fileList := []string{}
-	err := filepath.Walk(rootRecipeFolder, func(path string, f os.FileInfo, err error) error {
+	err := filepath.Walk(rootFolder, func(path string, f os.FileInfo, err error) error {
 		fileList = append(fileList, path)
 		return nil
 	})
@@ -93,6 +91,29 @@ func generateCommandLine() {
 		log.Fatal("Failed to generate recipe data")
 	}
 
+	return fileList
+}
+
+func validateFlags() {
+	//TODO: validate the state of the flags.
+}
+
+func applyFlagOverrides(recipe *recipe.BladeRecipe) {
+	if hosts != "" {
+		recipe.Required.Hosts = strings.Split(hosts, ",")
+	}
+
+	if concurrency > 0 {
+		recipe.Overrides.Concurrency = concurrency
+	}
+
+	if port > 0 {
+		recipe.Overrides.Port = port
+	}
+}
+
+func generateCommandLine() {
+	fileList := scanBladeFolder("recipes/")
 	commands := make(map[string]*cobra.Command)
 
 	// For now let's skip the global.blade.toml file.
@@ -105,7 +126,6 @@ func generateCommandLine() {
 
 			currentRecipe, err := recipe.LoadRecipe(file)
 			if err != nil {
-				// TODO: don't fatal but skip recipe or log.
 				log.Println("Found a broken recipe...skipping: ", err.Error())
 				continue
 			}
@@ -120,7 +140,6 @@ func generateCommandLine() {
 
 				// Known bug, we need to dedup these, but add them to a map based on their full path.
 				// Reason is: if you have the same folder name in different hiearchies you'll collide.
-				// Idea: Let user drop a .blade.toml file in a folder with a Short/Long
 				// This way we can add docs to describe command hiearchies when user uses the --help system.
 				recipeAlreadyFound := false
 				if _, ok := commands[p]; !ok {
@@ -142,25 +161,20 @@ func generateCommandLine() {
 					// Set the Use to just {recipe-name} of {recipe-name}.blade.toml.
 					currentCommand.Use = strings.TrimSuffix(p, ".blade.toml")
 					currentCommand.Run = func(cmd *cobra.Command, args []string) {
-						// It's probably better to not compile the properties like this
-						// And instead just kick off the work pointing to the .blade.toml file
-						// This way, we defer loading of the file until the last minute of execution.
-						// This means you can regenerate your command hiearchy but since it loads the .blade.toml
-						// on demand, should you change the file you don't have to regenerate.
-						// Therefore regenerating speeds up the startup of the program but doesn't bake in the end result of each command.
-						// The generate command is only going to be useful when a user starts having on the order of 100s of commands.
-						// fmt.Println("Recipe Command:", currentRecipe.Command)
-						// fmt.Println("Hosts: ", currentRecipe.Hosts)
-						// fmt.Println("HostsLookupCommand:", currentRecipe.HostLookupCommand)
-						//fmt.Printf("current recipe: %+v\n", currentRecipe)
-						bladessh.StartSSHSession(currentRecipe, port)
+						// Apply validation of flags if used.
+						validateFlags()
+
+						// Apply flag overrides to the recipe here.
+						applyFlagOverrides(currentRecipe)
+
+						// Finally kick off session of requests.
+						bladessh.StartSSHSession(currentRecipe)
 					}
 				}
 
 				// Only add recipe nodes we haven't already found.
 				if !recipeAlreadyFound {
 					if lastCommand == nil {
-						//recipeCmd.AddCommand(currentCommand)
 						runCmd.AddCommand(currentCommand)
 					} else {
 						lastCommand.AddCommand(currentCommand)
