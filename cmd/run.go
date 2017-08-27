@@ -40,6 +40,7 @@ var (
 	port        int
 	user        string
 	quiet       bool
+	verbose     bool
 )
 
 // blade ssh deploy-cloud-server-a // matches a recipe and therefore will follow the recipe guidelines against servers defined in recipe
@@ -68,12 +69,20 @@ var (
 
 func init() {
 	generateCommandLine()
-	runCmd.PersistentFlags().StringVarP(&hosts, "hosts", "x", "", "--hosts flag is one or more comma-delimited hosts.")
-	runCmd.PersistentFlags().IntVarP(&concurrency, "concurrency", "c", 0, "Max concurrency when running ssh commands")
-	runCmd.PersistentFlags().IntVarP(&retries, "retries", "r", 3, "Number of times to retry until a successful command returns")
-	runCmd.PersistentFlags().IntVarP(&port, "port", "p", 22, "The ssh port to use")
-	runCmd.PersistentFlags().StringVarP(&user, "user", "u", "root", "--user for ssh")
-	runCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "--quiet mode will keep Blade as silent as possible.")
+	runCmd.PersistentFlags().StringVarP(&hosts,
+		"servers", "s", "", "servers flag is one or more comma-delimited servers.")
+	runCmd.PersistentFlags().IntVarP(&concurrency,
+		"concurrency", "c", 0, "Max concurrency when running ssh commands")
+	runCmd.PersistentFlags().IntVarP(&retries,
+		"retries", "r", 3, "Number of times to retry until a successful command returns")
+	runCmd.PersistentFlags().IntVarP(&port,
+		"port", "p", 22, "The ssh port to use")
+	runCmd.PersistentFlags().StringVarP(&user,
+		"user", "u", "root", "user for ssh host login.")
+	runCmd.PersistentFlags().BoolVarP(&quiet,
+		"quiet", "q", false, "quiet mode will keep Blade as silent as possible.")
+	runCmd.PersistentFlags().BoolVarP(&verbose,
+		"verbose", "v", false, "verbose mode will keep Blade as verbose as possible.")
 	RootCmd.AddCommand(runCmd)
 }
 
@@ -97,7 +106,21 @@ func scanBladeFolder(rootFolder string) []string {
 }
 
 func validateFlags() {
-	//TODO: validate the state of the flags.
+	if concurrency < 0 {
+		log.Fatal("The specified --concurrency flag must not be a negative number.")
+	}
+
+	if port < 22 {
+		log.Fatal("The specified --port flag must be 22 or greater.")
+	}
+
+	if quiet && verbose {
+		log.Fatal("You must specify either --quiet or --verbose but not both.")
+	}
+
+	if retries < 0 {
+		log.Fatal("The specified --retries flag must not be a negative number.")
+	}
 }
 
 func applyFlagOverrides(recipe *recipe.BladeRecipe) {
@@ -169,8 +192,10 @@ func generateCommandLine() {
 						// Apply flag overrides to the recipe here.
 						applyFlagOverrides(currentRecipe)
 
+						// TODO: allows for tweaking beahvior of sessions such as verbosity or quiet mode.
+						modifier := bladessh.NewSessionModifier()
 						// Finally kick off session of requests.
-						bladessh.StartSSHSession(currentRecipe)
+						bladessh.StartSSHSession(currentRecipe, modifier)
 					}
 				}
 
