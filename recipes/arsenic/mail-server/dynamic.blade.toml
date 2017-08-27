@@ -1,5 +1,7 @@
 [Required]
-  Command = "cat /proc/version | awk '{print $3}'"
+  Commands = [
+    "cat /proc/version | awk '{print $3}'"
+  ]
   HostLookupCommand = "python knife node search prod"
 [Overrides] 
   Concurrency = 5

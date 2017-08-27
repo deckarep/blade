@@ -40,8 +40,8 @@ var recipeDumpCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		s := &recipe.BladeRecipe{
 			Required: &recipe.RequiredRecipe{
-				Command: "hostname",
-				Hosts:   []string{"blade.local", "blade.prod.local", "blade.integ.local"},
+				Commands: []string{"hostname"},
+				Hosts:    []string{"blade.local", "blade.prod.local", "blade.integ.local"},
 			},
 			Overrides: &recipe.OverridesRecipe{
 				Concurrency: 7,

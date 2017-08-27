@@ -1,6 +1,8 @@
 [Required]
   # At a minimum you need a command.
-  Command = "hostname"
+  Commands = [
+    "hostname"
+  ]
 
   # And a predifined list of hardcoded hosts.
   Hosts = ["blade-dev", "blade-prod", "blade-integ"]

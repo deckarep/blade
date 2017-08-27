@@ -3,10 +3,8 @@ package ssh
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"net"
-	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -41,10 +39,7 @@ func StartSSHSession(recipe *recipe.BladeRecipe, port int) {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	sshCmds := []string{recipe.Required.Command}
-	if len(sshCmds[0]) == 0 {
-		sshCmds = recipe.Required.Commands
-	}
+	sshCmds := recipe.Required.Commands
 
 	// Concurrency must be at least 1 to make progress.
 	if recipe.Overrides.Concurrency == 0 {
@@ -172,9 +167,25 @@ func doSingleSSHCommand(client *ssh.Client, hostname, command string) {
 	// This way is useful when you don't want to have to wait for buffering such as
 	// echo 'sleeping for 5 seconds' && sleep 5
 	// Note: just comment this out to go back to regular line scanning.
-	go io.Copy(os.Stdout, out)
+	//go io.Copy(os.Stdout, out)
 
-	scanner := bufio.NewScanner(out)
+	currentHost := strings.Split(hostname, ":")[0]
+	logHost := color.GreenString(currentHost + ":")
+
+	// Kick off the scanner async because we don't want to have to wait
+	// for the the Run command to finish before we start dumping data to
+	// the screen.
+	// TODO: move to a thread-safe logger because this aint.
+	go func() {
+		scanner := bufio.NewScanner(out)
+		for scanner.Scan() {
+			fmt.Println(logHost + " " + scanner.Text())
+		}
+
+		if err := scanner.Err(); err != nil {
+			fmt.Print(color.RedString(currentHost) + ": Error reading output from this host.")
+		}
+	}()
 
 	// Once a Session is created, you can execute a single command on
 	// the remote side using the Run method.
@@ -182,16 +193,6 @@ func doSingleSSHCommand(client *ssh.Client, hostname, command string) {
 		log.Printf("Failed to run the command: %s", err.Error())
 	}
 
-	currentHost := strings.Split(hostname, ":")[0]
-	logHost := color.GreenString(currentHost + ":")
-
-	for scanner.Scan() {
-		fmt.Println(logHost + " " + scanner.Text())
-	}
-
-	if err := scanner.Err(); err != nil {
-		fmt.Print(color.RedString(currentHost) + ": Error reading output from this host.")
-	}
 }
 
 // Notes: the above uses a buffer
