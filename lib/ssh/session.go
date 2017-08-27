@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
@@ -21,6 +22,7 @@ var (
 	hostWg                sync.WaitGroup
 	successfullyCompleted int32
 	failedCompleted       int32
+	sessionLogger         = log.New(os.Stdout, "", 0)
 )
 
 // StartSSHSession kicks off a session of work.
@@ -93,8 +95,6 @@ func startHost(host string, port int) {
 		return
 	}
 
-	//hostSet.Add(trimmedHost)
-
 	// Finally queue it up for processing
 	hostQueue <- trimmedHost
 	hostWg.Add(1)
@@ -143,8 +143,7 @@ func doSingleSSHCommand(client *ssh.Client, hostname, command string) {
 	var finalError error
 	defer func() {
 		if finalError != nil {
-			log.Println(color.YellowString(hostname) + fmt.Sprintf(" error %s", finalError.Error()))
-			//hostErrorSet.Add(hostname)
+			sessionLogger.Println(color.YellowString(hostname) + fmt.Sprintf(" error %s", finalError.Error()))
 		}
 	}()
 
@@ -159,7 +158,7 @@ func doSingleSSHCommand(client *ssh.Client, hostname, command string) {
 
 	out, err := session.StdoutPipe()
 	if err != nil {
-		log.Fatal("Couldn't create pipe to session stdout... :(")
+		sessionLogger.Fatal("Couldn't create pipe to session stdout... :(")
 	}
 
 	// This is just a demo of how to not use buffering get immediate output.
@@ -174,42 +173,20 @@ func doSingleSSHCommand(client *ssh.Client, hostname, command string) {
 	// Kick off the scanner async because we don't want to have to wait
 	// for the the Run command to finish before we start dumping data to
 	// the screen.
-	// TODO: move to a thread-safe logger because this aint.
 	go func() {
 		scanner := bufio.NewScanner(out)
 		for scanner.Scan() {
-			fmt.Println(logHost + " " + scanner.Text())
+			sessionLogger.Println(logHost + " " + scanner.Text())
 		}
 
 		if err := scanner.Err(); err != nil {
-			fmt.Print(color.RedString(currentHost) + ": Error reading output from this host.")
+			sessionLogger.Print(color.RedString(currentHost) + ": Error reading output from this host.")
 		}
 	}()
 
 	// Once a Session is created, you can execute a single command on
 	// the remote side using the Run method.
 	if err := session.Run(command); err != nil {
-		log.Printf("Failed to run the command: %s", err.Error())
+		sessionLogger.Printf("Failed to run the command: %s", err.Error())
 	}
-
 }
-
-// Notes: the above uses a buffer
-// An alternative way to wire up the output is to just copy data from one end to another
-// stdin, err := session.StdinPipe()
-// if err != nil {
-// 	return fmt.Errorf("Unable to setup stdin for session: %v", err)
-// }
-// go io.Copy(stdin, os.Stdin)
-
-// stdout, err := session.StdoutPipe()
-// if err != nil {
-// 	return fmt.Errorf("Unable to setup stdout for session: %v", err)
-// }
-// go io.Copy(os.Stdout, stdout)
-
-// stderr, err := session.StderrPipe()
-// if err != nil {
-// 	return fmt.Errorf("Unable to setup stderr for session: %v", err)
-// }
-// go io.Copy(os.Stderr, stderr)
