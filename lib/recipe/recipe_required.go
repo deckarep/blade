@@ -21,28 +21,9 @@ SOFTWARE.
 
 package recipe
 
-import (
-	"io/ioutil"
-
-	"github.com/BurntSushi/toml"
-)
-
-func LoadRecipe(path string) (*BladeRecipe, error) {
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		// TODO: errors.Wrap
-		return nil, err
-	}
-
-	rec := NewRecipe()
-	_, err = toml.Decode(string(b), rec)
-	if err != nil {
-		// TODO: errors.Wrap
-		return nil, err
-	}
-
-	// The first _ in toml.Decode is a meta property with more interesting details.
-	//fmt.Println(meta.IsDefined("PromptBanner"))
-
-	return rec, nil
+type RequiredRecipe struct {
+	// Allows for one or more commands to be executed within a single server session.
+	Commands          []string
+	Hosts             []string `toml:"Hosts,omitempty"`             // Must specify one or the other.
+	HostLookupCommand string   `toml:"HostLookupCommand,omitempty"` // What happens if both are?
 }

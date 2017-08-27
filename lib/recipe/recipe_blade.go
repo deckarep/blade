@@ -21,28 +21,38 @@ SOFTWARE.
 
 package recipe
 
-import (
-	"io/ioutil"
-
-	"github.com/BurntSushi/toml"
-)
-
-func LoadRecipe(path string) (*BladeRecipe, error) {
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		// TODO: errors.Wrap
-		return nil, err
+func NewRecipe() *BladeRecipe {
+	return &BladeRecipe{
+		Required: &RequiredRecipe{},
+		Overrides: &OverridesRecipe{
+			Port: 22,
+		},
+		Help:        &HelpRecipe{},
+		Interaction: &InteractionRecipe{},
+		Resilience:  &ResilienceRecipe{},
+		Meta:        &MetaRecipe{},
 	}
+}
 
-	rec := NewRecipe()
-	_, err = toml.Decode(string(b), rec)
-	if err != nil {
-		// TODO: errors.Wrap
-		return nil, err
-	}
+// // StepRecipe is an ordered series of recipes that will be attempted in the specified order.
+// // The parameters specified in this recipe supercede the parameters in the individual recipe.
+// type StepRecipe struct {
+// 	// Hmmm...does a step recipe inherit the properties above? Or does it have it's own similar specialized properties.
+// 	Recipe
+// 	Steps             []*Recipe
+// 	StepPauseDuration string
+// }
 
-	// The first _ in toml.Decode is a meta property with more interesting details.
-	//fmt.Println(meta.IsDefined("PromptBanner"))
+// type AggregateRecipe struct {
+// 	Recipe
+// }
 
-	return rec, nil
+// BladeRecipe is the root recipe type.
+type BladeRecipe struct {
+	Required    *RequiredRecipe
+	Overrides   *OverridesRecipe
+	Help        *HelpRecipe
+	Interaction *InteractionRecipe
+	Resilience  *ResilienceRecipe
+	Meta        *MetaRecipe
 }

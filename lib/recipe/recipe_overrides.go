@@ -21,28 +21,17 @@ SOFTWARE.
 
 package recipe
 
-import (
-	"io/ioutil"
+type OverridesRecipe struct {
+	Port        int
+	Concurrency int
+	User        string
 
-	"github.com/BurntSushi/toml"
-)
+	// HostLookupCacheDisabled indicates that you want HostLookupCommand's to never be cached based on global settings.
+	HostLookupCacheDisabled bool
 
-func LoadRecipe(path string) (*BladeRecipe, error) {
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		// TODO: errors.Wrap
-		return nil, err
-	}
+	// HostLookupCacheDuration specifies the amount of time to utilize cache before refreshing the host list.
+	HostLookupCacheDuration string
 
-	rec := NewRecipe()
-	_, err = toml.Decode(string(b), rec)
-	if err != nil {
-		// TODO: errors.Wrap
-		return nil, err
-	}
-
-	// The first _ in toml.Decode is a meta property with more interesting details.
-	//fmt.Println(meta.IsDefined("PromptBanner"))
-
-	return rec, nil
+	// HostRandomizeOrder will have Blade perform the command based on a random order of the hosts involved.
+	HostRandomizeOrder bool
 }
