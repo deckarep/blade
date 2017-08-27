@@ -173,17 +173,22 @@ func doSingleSSHCommand(index int, client *ssh.Client, hostname, command string)
 	currentHost := strings.Split(hostname, ":")[0]
 
 	// Consume session Stdout, Stderr pipe async.
-	go consumeReaderPipes(currentHost, out)
-	go consumeReaderPipes(currentHost, errOut)
+	go consumeReaderPipes(currentHost, out, false)
+	go consumeReaderPipes(currentHost, errOut, true)
 
 	// Once a Session is created, you can only ever execute a single command.
 	if err := session.Run(command); err != nil {
+		// TODO: use this line for more verbose error logging since Stderr is also displayed.
 		sessionLogger.Print(color.RedString(currentHost+":") + fmt.Sprintf(" Failed to run the %s command: `%s` - %s", humanize.Ordinal(index), command, err.Error()))
 	}
 }
 
-func consumeReaderPipes(host string, rdr io.Reader) {
+func consumeReaderPipes(host string, rdr io.Reader, isStdErr bool) {
 	logHost := color.CyanString(host + ":")
+
+	if isStdErr {
+		logHost = color.RedString(host + ":")
+	}
 
 	scanner := bufio.NewScanner(rdr)
 	for scanner.Scan() {
