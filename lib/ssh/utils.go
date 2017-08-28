@@ -22,13 +22,19 @@ SOFTWARE.
 package ssh
 
 import (
+	"bufio"
 	"errors"
+	"fmt"
+	"io"
 	"io/ioutil"
+	"log"
 	"net"
 	"os"
 	"path"
 	"regexp"
+	"strings"
 
+	"github.com/fatih/color"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
@@ -55,5 +61,55 @@ func LoadSSHUserName() (string, error) {
 		return matches[1], nil
 	} else {
 		return "", errors.New("could not find your SSH username. is it defined in ~/.ssh/config?")
+	}
+}
+
+func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, commands []string) {
+	for host := range hostQueue {
+		concurrencySem <- 1
+		go func(h string) {
+			defer func() {
+				<-concurrencySem
+				hostWg.Done()
+			}()
+			executeSession(sshConfig, h, commands)
+		}(host)
+	}
+}
+
+func enqueueHost(host string, port int) {
+	trimmedHost := strings.TrimSpace(host)
+
+	// If it doesn't contain port :22 add it
+	if !strings.Contains(trimmedHost, ":") {
+		trimmedHost = fmt.Sprintf("%s:%d", trimmedHost, port)
+	}
+
+	// Ignore what you can't parse as host:port
+	_, _, err := net.SplitHostPort(trimmedHost)
+	if err != nil {
+		log.Printf("Couldn't parse: %s", trimmedHost)
+		return
+	}
+
+	// Finally queue it up for processing
+	hostQueue <- trimmedHost
+	hostWg.Add(1)
+}
+
+func consumeReaderPipes(host string, rdr io.Reader, isStdErr bool) {
+	logHost := color.CyanString(host + ":")
+
+	if isStdErr {
+		logHost = color.RedString(host + ":")
+	}
+
+	scanner := bufio.NewScanner(rdr)
+	for scanner.Scan() {
+		sessionLogger.Println(logHost + " " + scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		sessionLogger.Print(color.RedString(host) + ": Error reading output from this host.")
 	}
 }

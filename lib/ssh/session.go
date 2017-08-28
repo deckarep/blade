@@ -22,11 +22,8 @@ SOFTWARE.
 package ssh
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"log"
-	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -93,7 +90,7 @@ func StartSSHSession(recipe *recipe.BladeRecipe, modifier *SessionModifier) {
 
 	totalHosts := len(allHosts)
 	for _, h := range allHosts {
-		startHost(h, recipe.Overrides.Port)
+		enqueueHost(h, recipe.Overrides.Port)
 	}
 
 	hostWg.Wait()
@@ -104,42 +101,9 @@ func StartSSHSession(recipe *recipe.BladeRecipe, modifier *SessionModifier) {
 		totalHosts)))
 }
 
-func startHost(host string, port int) {
-	trimmedHost := strings.TrimSpace(host)
-
-	// If it doesn't contain port :22 add it
-	if !strings.Contains(trimmedHost, ":") {
-		trimmedHost = fmt.Sprintf("%s:%d", trimmedHost, port)
-	}
-
-	// Ignore what you can't parse as host:port
-	_, _, err := net.SplitHostPort(trimmedHost)
-	if err != nil {
-		log.Printf("Couldn't parse: %s", trimmedHost)
-		return
-	}
-
-	// Finally queue it up for processing
-	hostQueue <- trimmedHost
-	hostWg.Add(1)
-}
-
-func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, commands []string) {
-	for host := range hostQueue {
-		concurrencySem <- 1
-		go func(h string) {
-			defer func() {
-				<-concurrencySem
-				hostWg.Done()
-			}()
-			executeSession(sshConfig, h, commands)
-		}(host)
-	}
-}
-
 func executeSession(sshConfig *ssh.ClientConfig, hostname string, commands []string) {
 	backoff.RetryNotify(func() error {
-		return doSSH(sshConfig, hostname, commands)
+		return startSSHSession(sshConfig, hostname, commands)
 	}, backoff.WithMaxTries(backoff.NewExponentialBackOff(), 3),
 		func(err error, dur time.Duration) {
 			// TODO: handle this better.
@@ -148,7 +112,7 @@ func executeSession(sshConfig *ssh.ClientConfig, hostname string, commands []str
 	)
 }
 
-func doSSH(sshConfig *ssh.ClientConfig, hostname string, commands []string) error {
+func startSSHSession(sshConfig *ssh.ClientConfig, hostname string, commands []string) error {
 	var finalError error
 	defer func() {
 		if finalError != nil {
@@ -171,77 +135,4 @@ func doSSH(sshConfig *ssh.ClientConfig, hostname string, commands []string) erro
 	// Technically this is only successful when errors didn't occur above.
 	atomic.AddInt32(&successfullyCompleted, 1)
 	return nil
-}
-
-func executeSingleCommand(index int, client *ssh.Client, hostname, command string) {
-	backoff.RetryNotify(func() error {
-		return doSingleSSHCommand(index, client, hostname, command)
-	}, backoff.WithMaxTries(backoff.NewExponentialBackOff(), 3),
-		func(err error, dur time.Duration) {
-			// TODO: handle this better.
-			log.Println("Retry notify single command callback: ", err.Error())
-		},
-	)
-}
-
-// doSingleSSHCommand - the rule is one command can only ever occur per session.
-func doSingleSSHCommand(index int, client *ssh.Client, hostname, command string) error {
-	var finalError error
-	defer func() {
-		if finalError != nil {
-			sessionLogger.Println(color.YellowString(hostname) + fmt.Sprintf(" error %s", finalError.Error()))
-		}
-	}()
-
-	// Each ClientConn can support multiple interactive sessions,
-	// represented by a Session.
-	session, err := client.NewSession()
-	if err != nil {
-		finalError = fmt.Errorf("Failed to create session: %s", err.Error())
-		return finalError
-	}
-	defer session.Close()
-
-	out, err := session.StdoutPipe()
-	if err != nil {
-		finalError = fmt.Errorf("Couldn't create pipe to Stdout for session: %s", err.Error())
-		return finalError
-	}
-
-	errOut, err := session.StderrPipe()
-	if err != nil {
-		finalError = fmt.Errorf("Couldn't create pipe to Stderr for session: %s", err.Error())
-		return finalError
-	}
-
-	currentHost := strings.Split(hostname, ":")[0]
-
-	// Consume session Stdout, Stderr pipe async.
-	go consumeReaderPipes(currentHost, out, false)
-	go consumeReaderPipes(currentHost, errOut, true)
-
-	// Once a Session is created, you can only ever execute a single command.
-	if err := session.Run(command); err != nil {
-		// TODO: use this line for more verbose error logging since Stderr is also displayed.
-		//sessionLogger.Print(color.RedString(currentHost+":") + fmt.Sprintf(" Failed to run the %s command: `%s` - %s", humanize.Ordinal(index), command, err.Error()))
-		return err
-	}
-	return nil
-}
-
-func consumeReaderPipes(host string, rdr io.Reader, isStdErr bool) {
-	logHost := color.CyanString(host + ":")
-
-	if isStdErr {
-		logHost = color.RedString(host + ":")
-	}
-
-	scanner := bufio.NewScanner(rdr)
-	for scanner.Scan() {
-		sessionLogger.Println(logHost + " " + scanner.Text())
-	}
-
-	if err := scanner.Err(); err != nil {
-		sessionLogger.Print(color.RedString(host) + ": Error reading output from this host.")
-	}
 }
