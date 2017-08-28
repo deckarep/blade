@@ -32,9 +32,10 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/deckarep/blade/lib/recipe"
-	humanize "github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"golang.org/x/crypto/ssh"
 )
@@ -123,7 +124,7 @@ func startHost(host string, port int) {
 	hostWg.Add(1)
 }
 
-func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, command []string) {
+func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, commands []string) {
 	for host := range hostQueue {
 		concurrencySem <- 1
 		go func(h string) {
@@ -131,38 +132,60 @@ func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, command []string) {
 				<-concurrencySem
 				hostWg.Done()
 			}()
-			doSSH(sshConfig, h, command)
+			executeSession(sshConfig, h, commands)
 		}(host)
 	}
 }
 
-func doSSH(sshConfig *ssh.ClientConfig, hostname string, commands []string) {
+func executeSession(sshConfig *ssh.ClientConfig, hostname string, commands []string) {
+	backoff.RetryNotify(func() error {
+		return doSSH(sshConfig, hostname, commands)
+	}, backoff.WithMaxTries(backoff.NewExponentialBackOff(), 3),
+		func(err error, dur time.Duration) {
+			// TODO: handle this better.
+			log.Println("Retry notify callback: ", err.Error())
+		},
+	)
+}
+
+func doSSH(sshConfig *ssh.ClientConfig, hostname string, commands []string) error {
 	var finalError error
 	defer func() {
 		if finalError != nil {
 			log.Println(color.YellowString(hostname) + fmt.Sprintf(" error %s", finalError.Error()))
-			//hostErrorSet.Add(hostname)
 		}
 	}()
 
 	client, err := ssh.Dial("tcp", hostname, sshConfig)
 	if err != nil {
 		finalError = fmt.Errorf("Failed to dial remote host: %s", err.Error())
-		return
+		return finalError
 	}
 
 	// Since we can run multiple commands, we need to keep track of intermediate failures
 	// and log accordingly or do some type of aggregate report.
 	for i, cmd := range commands {
-		doSingleSSHCommand(i+1, client, hostname, cmd)
+		executeSingleCommand(i+1, client, hostname, cmd)
 	}
 
 	// Technically this is only successful when errors didn't occur above.
 	atomic.AddInt32(&successfullyCompleted, 1)
+	return nil
+}
+
+func executeSingleCommand(index int, client *ssh.Client, hostname, command string) {
+	backoff.RetryNotify(func() error {
+		return doSingleSSHCommand(index, client, hostname, command)
+	}, backoff.WithMaxTries(backoff.NewExponentialBackOff(), 3),
+		func(err error, dur time.Duration) {
+			// TODO: handle this better.
+			log.Println("Retry notify single command callback: ", err.Error())
+		},
+	)
 }
 
 // doSingleSSHCommand - the rule is one command can only ever occur per session.
-func doSingleSSHCommand(index int, client *ssh.Client, hostname, command string) {
+func doSingleSSHCommand(index int, client *ssh.Client, hostname, command string) error {
 	var finalError error
 	defer func() {
 		if finalError != nil {
@@ -175,20 +198,20 @@ func doSingleSSHCommand(index int, client *ssh.Client, hostname, command string)
 	session, err := client.NewSession()
 	if err != nil {
 		finalError = fmt.Errorf("Failed to create session: %s", err.Error())
-		return
+		return finalError
 	}
 	defer session.Close()
 
 	out, err := session.StdoutPipe()
 	if err != nil {
 		finalError = fmt.Errorf("Couldn't create pipe to Stdout for session: %s", err.Error())
-		return
+		return finalError
 	}
 
 	errOut, err := session.StderrPipe()
 	if err != nil {
 		finalError = fmt.Errorf("Couldn't create pipe to Stderr for session: %s", err.Error())
-		return
+		return finalError
 	}
 
 	currentHost := strings.Split(hostname, ":")[0]
@@ -200,8 +223,10 @@ func doSingleSSHCommand(index int, client *ssh.Client, hostname, command string)
 	// Once a Session is created, you can only ever execute a single command.
 	if err := session.Run(command); err != nil {
 		// TODO: use this line for more verbose error logging since Stderr is also displayed.
-		sessionLogger.Print(color.RedString(currentHost+":") + fmt.Sprintf(" Failed to run the %s command: `%s` - %s", humanize.Ordinal(index), command, err.Error()))
+		//sessionLogger.Print(color.RedString(currentHost+":") + fmt.Sprintf(" Failed to run the %s command: `%s` - %s", humanize.Ordinal(index), command, err.Error()))
+		return err
 	}
+	return nil
 }
 
 func consumeReaderPipes(host string, rdr io.Reader, isStdErr bool) {
