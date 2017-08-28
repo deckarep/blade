@@ -39,7 +39,7 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
-// Queries the actual ssh-agent
+// SSHAgent queries the host operating systems SSH agent.
 func SSHAgent() ssh.AuthMethod {
 	if sshAgent, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
 		return ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers)
@@ -52,16 +52,15 @@ func LoadSSHUserName() (string, error) {
 	sshFilePath := path.Join(os.Getenv("HOME"), ".ssh", "config")
 	sshConfig, err := ioutil.ReadFile(sshFilePath)
 	if err != nil {
-		return "", errors.New("could not load your SSH config.")
+		return "", errors.New("could not load your SSH config")
 	}
 
 	re, _ := regexp.Compile(`User (\w+)`)
 	matches := re.FindStringSubmatch(string(sshConfig))
 	if len(matches) > 1 {
 		return matches[1], nil
-	} else {
-		return "", errors.New("could not find your SSH username. is it defined in ~/.ssh/config?")
 	}
+	return "", errors.New("could not find your SSH username. is it defined in ~/.ssh/config?")
 }
 
 func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, commands []string) {
@@ -78,22 +77,22 @@ func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, commands []string) 
 }
 
 func enqueueHost(host string, port int) {
-	trimmedHost := strings.TrimSpace(host)
+	host = strings.TrimSpace(host)
 
-	// If it doesn't contain port :22 add it
-	if !strings.Contains(trimmedHost, ":") {
-		trimmedHost = fmt.Sprintf("%s:%d", trimmedHost, port)
+	// If it doesn't contain port :22 add it.
+	if !strings.Contains(host, ":") {
+		host = fmt.Sprintf("%s:%d", host, port)
 	}
 
-	// Ignore what you can't parse as host:port
-	_, _, err := net.SplitHostPort(trimmedHost)
+	// Ignore what you can't parse as host:port.
+	_, _, err := net.SplitHostPort(host)
 	if err != nil {
-		log.Printf("Couldn't parse: %s", trimmedHost)
+		log.Printf("Couldn't parse: %s", host)
 		return
 	}
 
-	// Finally queue it up for processing
-	hostQueue <- trimmedHost
+	// Finally, enqueue it up for processing.
+	hostQueue <- host
 	hostWg.Add(1)
 }
 
