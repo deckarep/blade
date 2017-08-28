@@ -128,8 +128,10 @@ func startSSHSession(sshConfig *ssh.ClientConfig, hostname string, commands []st
 
 	// Since we can run multiple commands, we need to keep track of intermediate failures
 	// and log accordingly or do some type of aggregate report.
+	// Commands within a single session are executed in serial by design.
 	for i, cmd := range commands {
-		executeSingleCommand(i+1, client, hostname, cmd)
+		se := newSingleExecution(client, hostname, cmd, i+1)
+		se.execute()
 	}
 
 	// Technically this is only successful when errors didn't occur above.

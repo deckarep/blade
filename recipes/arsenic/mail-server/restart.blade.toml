@@ -17,6 +17,9 @@
   # And a login user (default root)
   User = "root"
 
+  # TODO: Handle timing out scenarios
+  Timeout = "5min"
+
 [Resilience]
   WaitDuration = "5s"
   Retries = 3

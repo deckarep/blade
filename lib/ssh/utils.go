@@ -34,6 +34,7 @@ import (
 	"regexp"
 	"strings"
 
+	humanize "github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -96,11 +97,16 @@ func enqueueHost(host string, port int) {
 	hostWg.Add(1)
 }
 
-func consumeReaderPipes(host string, rdr io.Reader, isStdErr bool) {
+func consumeReaderPipes(host string, rdr io.Reader, isStdErr bool, attempt int) {
 	logHost := color.CyanString(host + ":")
 
 	if isStdErr {
-		logHost = color.RedString(host + ":")
+		// TODO: I want to see the attempts incrementing every time.
+		attemptString := ""
+		if attempt > 0 {
+			attemptString = fmt.Sprintf(" (%s attempt)", humanize.Ordinal(attempt))
+		}
+		logHost = color.RedString(host + attemptString + ":")
 	}
 
 	scanner := bufio.NewScanner(rdr)
