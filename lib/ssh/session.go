@@ -46,7 +46,7 @@ var (
 	sessionLogger         = log.New(os.Stdout, "", 0)
 )
 
-// StartSession kicks off a session of work.
+// StartSession kicks off a Blade Recipe as a session of work to be completed.
 func StartSession(recipe *recipe.BladeRecipe, modifier *SessionModifier) {
 	// Assumme root.
 	if recipe.Overrides.User == "" {
@@ -61,7 +61,9 @@ func StartSession(recipe *recipe.BladeRecipe, modifier *SessionModifier) {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	// Apply recipe args. TODO: don't loop twice here, then later for each cmd processing.
+	// Apply recipe will apply the recipe arguments to the commands
+	// assumming they're defined.
+	// TODO: don't loop twice here, then later for each cmd processing.
 	sshCmds, err := applyRecipeArgs(recipe.Argument.Set, recipe.Required.Commands)
 	if err != nil {
 		log.Fatal("Failed to apply recipe arguments to commands with err:", err.Error())

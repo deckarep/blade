@@ -101,7 +101,6 @@ func consumeReaderPipes(host string, rdr io.Reader, isStdErr bool, attempt int) 
 	logHost := color.CyanString(host + ":")
 
 	if isStdErr {
-		// TODO: I want to see the attempts incrementing every time.
 		attemptString := ""
 		if attempt > 0 {
 			attemptString = fmt.Sprintf(" (%s attempt)", humanize.Ordinal(attempt))

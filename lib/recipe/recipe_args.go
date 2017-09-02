@@ -28,8 +28,8 @@ type ArgumentsRecipe struct {
 	Set []*Arg
 }
 
-// Arg is in the form of `user=myuser` and referenced in your command
-// like: `%myuser%`
+// Arg is argument that can be applied to commands in the form of `{{arg-name}}.`
+// Args can additionally be overriden via command-line flags.
 type Arg struct {
 	Arg       string
 	flagValue string
