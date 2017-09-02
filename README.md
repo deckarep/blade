@@ -1,26 +1,14 @@
 Bladerunner
 ===========
 
-NOTE: Bladerunner is a WIP, totally alpha prototype. DO NOT USE IN PRODUCTION...the API is disgustingly unstable but I wanted to get start getting feedback on the API. There are no unit-tests no integration tests, barely there documentation...this code hasn't been well tested, well-linted, there is no A+ report card...yet. I consider this a fun work in progress and will *only accept constructive and useful feedback* at this time.
+NOTE: Bladerunner is an unstable alpha API -- constructive feedback welcome.
 
 Bladerunner is an SSH based remote command runner tool that attempts to capture best-practices when
 managing remote infrastructure inside TOML files. These TOML files are meant to be under source control and shared with team-mates.
 
-The design goal of Bladerunner is that recipes can be created which describe one or more commands to be executed on one more remote hosts.
-
-Commands are defined in a recipe folder and the intent is that recipes can be shared amongst your
-team. A recipe ideally captures the best-practice around running a remote command on one or more
-servers. Recipes are placed in a folder hierarchy that you define which best reflects your command hierarchy when executing commands.
-
-### Why a new tool?
-* I've been wanting to build a tool like this in Go for awhile thanks to Go's awesome concurrency
-primitives and great SSH tooling.
-* I want to capture and document the best practice around running remote commands on my infrastructure. In other words, I want to make sure that when I run commands, they're documented well, they are safe, they restrict concurrency to the right amount, they prompt when necessary and they can be shared so the next team-mate can do it the same.
-* I want to leverage something that is high-performance and very light-weight when it comes to threading and handling of many TCP connections.
-
 ### Tutorial
 
-Here is the most basic recipe which consists two *required* fields: *Commands* and *Hosts*. Both of which are defined as Toml lists within a toml file which means you can execute multiple commands on multiple hosts if you so desire. As it stands, the commands will be executed in serial on each host specified. And with no concurrency limit defined; this recipe will be applied to one host at a time until all commands have completed on all hosts.
+In the `recipes/infra-a/` folder create this file and name it: `hostname.blade.toml`. This file has a single command that will be run on a single host.
 
 ```toml
 [Required]
@@ -30,19 +18,21 @@ Here is the most basic recipe which consists two *required* fields: *Commands* a
   Hosts = ["blade-prod"]
 ```
 
-Bladerunner reads recipes defined in a recipe folder somewhere on your file-system. The intention being that the recipes are just data defined in Toml based files. The folder structure you use has implications on how Bladerunner interpresets your command hierarchy. Let's place the file above in the following folder hierarchy: `recipes/infra-a/hostname.blade.toml`.
+Place the file above in the following folder hierarchy.
 
 ```
-.
+recipes
 └── infra-a
     └── hostname.blade.toml
 ```
 
-In the directory structure defined above Bladerunner will now recognize that you have a command located within the `recipes` folder. Bladerunner does not care about your folder structure but you should care about it. Because not only does it give you the opportunity to organize your Bladerunner Toml files. But Bladerunner will also create a command hierarchy based on this folder structure like so:
+Run the following command:
 
 ```sh
 ./blade run
+```
 
+```
 # Output below:
 run [command]
 
