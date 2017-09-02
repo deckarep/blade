@@ -4,7 +4,9 @@ Bladerunner
 NOTE: Bladerunner is an unstable alpha API -- constructive feedback welcome.
 
 Bladerunner is an SSH based remote command runner tool that attempts to capture best-practices when
-managing remote infrastructure inside TOML files. These TOML files are meant to be under source control and shared with team-mates.
+managing remote infrastructure inside TOML files. These TOML files are meant to be under source control and shared with team-mates. A Bladerunner .toml file holds the declarative instructions for running one or more remote commands on one or more servers. 
+
+This gives you the power of running well-defined commands on fleets of servers in a simple, expressive and easy to use CLI interface.
 
 ### Tutorial
 
