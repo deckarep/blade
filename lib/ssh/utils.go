@@ -80,12 +80,12 @@ func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, commands []string) 
 func enqueueHost(host string, port int) {
 	host = strings.TrimSpace(host)
 
-	// If it doesn't contain port :22 add it.
+	// If it doesn't contain the port; add it.
 	if !strings.Contains(host, ":") {
 		host = fmt.Sprintf("%s:%d", host, port)
 	}
 
-	// Ignore what you can't parse as host:port.
+	// Ignore what can't be parsed as host:port.
 	_, _, err := net.SplitHostPort(host)
 	if err != nil {
 		log.Printf("Couldn't parse: %s", host)
