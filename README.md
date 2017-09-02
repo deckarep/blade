@@ -8,6 +8,9 @@ managing remote infrastructure inside TOML files. These TOML files are meant to 
 
 This gives you the power of running well-defined commands on fleets of servers in a simple, expressive and easy to use CLI interface.
 
+### Demo
+[![asciicast](https://asciinema.org/a/LrTB1qOLYyRCVw7S4yEHnl950.png)](https://asciinema.org/a/LrTB1qOLYyRCVw7S4yEHnl950)
+
 ### Tutorial
 
 In the `recipes/infra-a/` folder create this file and name it: `hostname.blade.toml`. This file has a single command that will be run on a single host.
