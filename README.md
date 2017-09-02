@@ -1,59 +1,100 @@
-Blade
-======
+Bladerunner
+===========
 
-Administer servers the Deckarep's  way: Blade is bigger, better, faster than Knife.
+Bladerunner is an SSH based remote command runner tool that attempts to capture best-practices when
+managing remote infrastructure inside TOML files. 
 
-### Features
-* Blade eats ssh connections for breakfast: Translation 1 goroutine per ssh connection vs 1 os thread per ssh connection.
-* Caches queries for faster execution (configurable)
-* Enforces a consistent style for common tasks
-* Built-in safety for destructive commands
-* Consists of components which are single one-off commands
-* And Recipes which are composed commands to enforce better and consistent administration across the organization
-* Summaries: for when you don't want to see a bunch git-hashes streaming by, just tell me if everything matches please.
-* Enforces proper rolling for deploying, in other words: don't deploy all proxies in one shot please...
-* Colorized output for easier groking
-* Automatically ensures all commands run properly: asserts exit(0)
-* Allows for custom user-specific components and recipes
+The design goal of Bladerunner is that recipes can be created which describe one or more commands to be executed on one more remote hosts.
 
-### Possible Future Features
-* Deploy locks, is someone else already deploying?  Let's not step on each other...yours will have to wait.
-
-### Testing
-* Turn on Remote Management for your Mac
-* Add your id_rsa.pub to ~/.ssh/authorized_keys file
-* Add /etc/hosts alias to your hosts file like so
-* This gives you the ability to test locally
-
-```
-127.0.0.1 blade.local
-127.0.0.1 blade.dev.local
-127.0.0.1 blade.prod.local
-```
-
-* Add something like this to your ~/.ssh/config file
-```
-Host blade.local
-  User deckarep
-  AddKeysToAgent yes
-  UseKeychain yes
-  IdentityFile ~/.ssh/id_rsa
-
-Host blade.dev.local
-  User deckarep
-  AddKeysToAgent yes
-  UseKeychain yes
-  IdentityFile ~/.ssh/id_rsa
-
-Host blade.prod.local
-  User deckarep
-  AddKeysToAgent yes
-  UseKeychain yes
-  IdentityFile ~/.ssh/id_rsa
-```
-
+Commands are defined in a recipe folder and the intent is that recipes can be shared amongst your
+team. A recipe ideally captures the best-practice around running a remote command on one or more
+servers. Recipes are placed in a folder hiearchy that you define which best reflects your command hiearchy when executing commands.
 
 ### Why a new tool?
-Knife is cool for what it does but it's written in Ruby and actually spins up a full OS dedicated thread per connection.
-Additionally everyone deploys/manages a little differently when doing common tasks like deploying, etc yet we should
-ALL be doing it the same to ensure proper state and consistency.
+* I've been wanting to build a tool like this in Go for awhile thanks to Go's awesome concurrency
+primitives and great SSH tooling.
+* I want to capture and document the best practice around running remote commands on my infrastructure. In other words, I want to make sure that when I run commands, they're documented well, they are safe, they restrict concurrency to the right amount, they prompt when necessary and they can be shared so the next team-mate can do it the same.
+* I want to leverage something that is high-performance and very light-weight when it comes to threading and handling of many TCP connections.
+
+### Tutorial
+
+Here is the most basic recipe which consists two *required* fields: *Commands* and *Hosts*. Both of which are defined as Toml lists within a toml file which means you can execute multiple commands on multiple hosts if you so desire. As it stands, the commands will be executed in serial on each host specified. And with no concurrency limit defined; this recipe will be applied to one host at a time until all commands have completed on all hosts.
+
+```toml
+[Required]
+  Commands = [
+    "hostname"
+  ]
+  Hosts = ["blade-prod"]
+```
+
+Bladerunner reads recipes defined in a recipe folder somewhere on your file-system. The intention being that the recipes are just data defined in Toml based files. The folder structure you use has implications on how Bladerunner interpresets your command hiearchy. Let's place the file above in the following folder hiearchy: `recipes/infra-a/hostname.blade.toml`.
+
+```
+.
+└── infra-a
+    └── hostname.blade.toml
+```
+
+In the directory structure defined above Bladerunner will now recognize that you have a command located within the `recipes` folder. Bladerunner does not care about your folder structure but you should care about it. Because not only does it give you the opportunity to organize your Bladerunner Toml files. But Bladerunner will also create a command hiearchy based on this folder structure like so:
+
+```sh
+./blade run
+
+# Output below:
+run [command]
+
+Usage:
+  blade run [command]
+
+Available Commands:
+  infra-a
+
+Flags:
+  -c, --concurrency int   Max concurrency when running ssh commands
+  -h, --help              help for run
+  -p, --port int          The ssh port to use (default 22)
+  -q, --quiet             quiet mode will keep Blade as silent as possible.
+  -r, --retries int       Number of times to retry until a successful command returns (default 3)
+  -s, --servers string    servers flag is one or more comma-delimited servers.
+  -u, --user string       user for ssh host login. (default "root")
+  -v, --verbose           verbose mode will keep Blade as verbose as possible.
+```
+
+Notice that Bladerunner has a `run` command. This is the primary entry point into executing commands. But additionally, Bladerunner has a subcommand named `infra-a`.  Let's run that subcommand now.
+
+```sh
+./blade run infra-a
+
+# Output below:
+./blade run infra-a
+Usage:
+  blade run infra-a [command]
+
+Available Commands:
+  hostname
+
+Flags:
+  ...
+```
+
+You'll notice that Bladerunner dumps another help synopsis showing that a single available command exists named `hostname`.
+
+
+
+### Features
+* Bladeruuner is incredibly light-weight: 1 goroutine per ssh connection vs 1 os thread per ssh connection.
+* Enforces a consistent style for common tasks ie: we all deploy the same.
+* Consists of components which are single one-off commands
+* And Recipes which are composed commands to enforce better and consistent administration across the organization
+* Enforces proper concurrency restrictions when running remote commands.
+* Colorized output for easier groking.
+* Automatically ensures all commands run properly and possibly retried.
+* TODO: Recipes of Recipes, recipes are composeable.
+* TODO: Summaries for when you don't want to see a bunch git-hashes streaming by, just tell me if everything matches please.
+* TODO: Allows user-specific recipe overrides.
+* TODO: Caches host lookup queries for faster execution (configurable).
+* TODO: Built-in safety for destructive commands.
+
+### Possible Future Features
+* Command locks, is someone already running this remote command?  Let's not step on each other...yours will have to wait.

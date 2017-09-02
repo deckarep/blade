@@ -25,8 +25,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Blade is opinioned on how the recipe/ folder works
-// But not opinioned on how you structure it to match your infrastructure
+// Blade is opinioned on how the recipe/folder works
+// But not opinioned on how it's structured to match your infrastructure/use-case.
 var RootCmd = &cobra.Command{
 	Use:   "blade",
 	Short: "blade: a modern ssh command runner built in Go.",

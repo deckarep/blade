@@ -1,0 +1,5 @@
+[Required]
+  Commands = [
+    "hostname"
+  ]
+  Hosts = ["blade-prod"]
