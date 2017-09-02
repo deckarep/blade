@@ -1,6 +1,8 @@
 Bladerunner
 ===========
 
+NOTE: Bladerunner is a WIP, totally Alpha, prototype. DO NOT USE IN PRODUCTION...the API is disgustingly unstable but I wanted to get this out there to start getting feedback on the API. There are no unit-tests, no integration tests, barely there documentation...this code hasn't been well tested, well-linted, there is no A+ report card...yet. I consider this a fun work in progress and will *only accept constructive and useful feedback* at this time.
+
 Bladerunner is an SSH based remote command runner tool that attempts to capture best-practices when
 managing remote infrastructure inside TOML files. 
 
