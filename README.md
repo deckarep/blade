@@ -78,7 +78,20 @@ Flags:
   ...
 ```
 
-You'll notice that Bladerunner dumps another help synopsis showing that a single available command exists named `hostname`.
+You'll notice that Bladerunner dumps another help synopsis showing that a single available command exists named `hostname`. 
+
+At which now you can run like so:
+
+```sh
+./blade run infra-a hostname
+
+# Output below:
+2017/09/02 13:35:34 Starting recipe: infra-a.hostname
+blade-prod: blade2
+2017/09/02 13:35:35 Completed recipe: infra-a.hostname - 1 sucess | 0 failed | 1 total
+```
+
+At this point you've observed that a series of subcommands were dynamically added to Bladerunner based on your folder hiarchy and your defined TOML commands.  The folders allow you to organize commands into a hiearchy that reflects your ideal infrastructure. Folders although subcommands, are not executable themselves but simply a means of giving you the ability to build a smart command hiearchy that is intuitive and easy to remember.
 
 
 
