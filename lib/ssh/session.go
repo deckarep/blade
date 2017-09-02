@@ -156,8 +156,9 @@ func applyRecipeArgs(args []*recipe.Arg, commands []string) ([]string, error) {
 		replacedCmd := cmd
 		for _, arg := range args {
 			argToken := fmt.Sprintf("{{%s}}", arg.Arg)
-			if arg.FlagValue != "" {
-				replacedCmd = strings.Replace(replacedCmd, argToken, arg.FlagValue, -1)
+			appliedFlagValue := arg.FlagValue()
+			if arg.FlagValue() != "" {
+				replacedCmd = strings.Replace(replacedCmd, argToken, appliedFlagValue, -1)
 			} else {
 				replacedCmd = strings.Replace(replacedCmd, argToken, arg.Value, -1)
 			}

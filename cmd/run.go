@@ -128,7 +128,7 @@ func applyRecipeFlagOverrides(currentRecipe *recipe.BladeRecipe, cobraCommand *c
 
 	if len(argsList) > 0 {
 		for _, arg := range argsList {
-			cobraCommand.Flags().StringVarP(&arg.FlagValue, arg.Arg, "", "", arg.Help+" (recipe flag)")
+			arg.AttachFlag(cobraCommand)
 		}
 	}
 }

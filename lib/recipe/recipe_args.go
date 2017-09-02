@@ -21,6 +21,8 @@ SOFTWARE.
 
 package recipe
 
+import "github.com/spf13/cobra"
+
 // ArgumentsRecipe allows you to specify arguments for your commands.
 type ArgumentsRecipe struct {
 	Set []*Arg
@@ -30,7 +32,22 @@ type ArgumentsRecipe struct {
 // like: `%myuser%`
 type Arg struct {
 	Arg       string
-	FlagValue string
+	flagValue string
 	Value     string
 	Help      string
+}
+
+// AttachFlag allows you to pass in a Cobra command if you'd like to attach an override
+// flag in relation to this argument.
+func (a *Arg) AttachFlag(cobraCommand *cobra.Command) {
+	cobraCommand.Flags().StringVarP(&a.flagValue, a.Arg, "", "", a.Help+" (recipe flag)")
+}
+
+// FlagValue returns the applied flag which either came from a command-line override or
+// from the Recipe itself.
+func (a *Arg) FlagValue() string {
+	if a.flagValue != "" {
+		return a.flagValue
+	}
+	return a.Value
 }
