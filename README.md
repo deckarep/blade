@@ -147,7 +147,7 @@ But, with the power of concurrency, we can update our `hostname.blade.toml` file
   Concurrency = 2
 ```
 
-Rerun the command: `/.blade run infra-a hostname` and now observe that because we added a concurrency override of 2 that although we have a sleep delay of 5 seconds, both servers start and execute these remote commands and both finish in about 5 seconds time.
+Rerun the command: `/.blade run infra-a hostname` and now observe that because we added a concurrency override of 2 that although we have a sleep delay of 5 seconds, both servers start and execute these remote commands and the entire Bladerunner session finishes in about 5 seconds.
 
 Instead of updating our `hostname.blade.toml` file we additionally could have used Bladerunner's command-line flags to override the concurrency behavior like so:
 
@@ -156,6 +156,44 @@ Instead of updating our `hostname.blade.toml` file we additionally could have us
 ```
 
 This effectively acheives the same thing but instead controls the concurrency amount via the usage of an ad-hoc command line.
+
+What if we wanted to introduce some additional command line flags to our commands to dynamically change their behavior in an ad-hoc fashion before execution? We can do this by introducing `Argument Sets` as in the following:
+
+```toml
+[Argument]
+  [[Argument.Set]]
+    Arg = "name"
+    Value = "Bob"
+    Help = "is the name to echo"
+    
+[Required]
+  Commands = [
+    "echo '{{name}}'",
+    "hostname"
+  ]
+  Hosts = ["blade-prod", "blade-prod-a"]
+
+[Overrides] 
+  Concurrency = 2
+```
+
+Now at the command prompt if we type the following: `./blade run infra-a hostname --help`. We can see that we have introduced a new recipe flag called: `--name`.
+
+Therefore executing the `hostname.blade.toml` file without a flag will simply perform the `echo` command with the name `Bob`.
+
+And overriding this command is simply a matter of: `./blade run infra-a hostname --name Deckarep`.
+
+And the output now looks like the following:
+
+```sh
+2017/09/02 14:07:27 Starting recipe: infra-a.hostname
+blade-prod-a: Jerry
+blade-prod: Jerry
+blade-prod-a: blade2
+blade-prod: blade2
+2017/09/02 14:07:28 Completed recipe: infra-a.hostname - 2 sucess | 0 failed | 2 total
+```
+
 
 ### Features
 * Bladeruuner is incredibly light-weight: 1 goroutine per ssh connection vs 1 os thread per ssh connection.
