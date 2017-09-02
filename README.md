@@ -93,7 +93,69 @@ blade-prod: blade2
 
 At this point you've observed that a series of subcommands were dynamically added to Bladerunner based on your folder hiarchy and your defined TOML commands.  The folders allow you to organize commands into a hiearchy that reflects your ideal infrastructure. Folders although subcommands, are not executable themselves but simply a means of giving you the ability to build a smart command hiearchy that is intuitive and easy to remember.
 
+At this point, we've executed a single remote command called `hostname` on a single remote host called `blade-prod`. `blade-prod` is a remote server that I've set up on Vultr for the purpose of building this tool but it ultimately could be any server that you have access to where your SSH public-key is configured.
 
+Let's modify our single `hostname.blade.toml` file to run on more hosts.
+
+```toml
+[Required]
+  Commands = [
+    "hostname"
+  ]
+  Hosts = ["blade-prod", "blade-prod-a"]
+```
+
+Here we've defined another host we have access to and we can now rerun our command:
+
+```sh
+./blade run infra-a hostname
+
+# Output below:
+2017/09/02 13:47:50 Starting recipe: infra-a.hostname
+blade-prod: blade2
+blade-prod-a: blade2
+2017/09/02 13:47:52 Completed recipe: infra-a.hostname - 2 sucess | 0 failed | 2 total
+```
+
+As you can see, Bladerunner now executed a single command on each remote host defined. This execution happened in a serial fashion where only a single host was executed at a time. Note: The reason you see the same output is because I currently have my `/etc/hosts` file modified to have multiple aliases pointing to the same server instance.
+
+Let's modify the `hostname.blade.toml` to execute an additional command per host and save that change.
+
+```toml
+[Required]
+  Commands = [
+    "sleep 5",
+    "hostname"
+  ]
+  Hosts = ["blade-prod", "blade-prod-a"]
+```
+
+Rerun the command: `./blade run infra-a hostname` and observe that for each host running there is a 5 second delay due to the first sleep command. This means, that because we execute these commands in serial on one host first, then the other Bladerunner will take a total of 10 seconds to complete.
+
+But, with the power of concurrency, we can update our `hostname.blade.toml` file to have our commands executed at a concurrency level of 2. Let's also add a third `echo` command so we can observe how this changes the behavior of our run.
+
+```toml
+[Required]
+  Commands = [
+    "echo 'before sleep'",
+    "sleep 5",
+    "hostname"
+  ]
+  Hosts = ["blade-prod", "blade-prod-a"]
+
+[Overrides] 
+  Concurrency = 2
+```
+
+Rerun the command: `/.blade run infra-a hostname` and now observe that because we added a concurrency override of 2 that although we have a sleep delay of 5 seconds, both servers start and execute these remote commands and both finish in about 5 seconds time.
+
+Instead of updating our `hostname.blade.toml` file we additionally could have used Bladerunner's command-line flags to override the concurrency behavior like so:
+
+```sh
+./blade run infra-a hostname -c1 # or --concurrency 1
+```
+
+This effectively acheives the same thing but instead controls the concurrency amount via the usage of an ad-hoc command line.
 
 ### Features
 * Bladeruuner is incredibly light-weight: 1 goroutine per ssh connection vs 1 os thread per ssh connection.

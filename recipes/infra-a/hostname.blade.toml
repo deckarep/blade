@@ -1,5 +1,10 @@
 [Required]
   Commands = [
+    "echo 'before sleep'",
+    "sleep 5",
     "hostname"
   ]
-  Hosts = ["blade-prod"]
+  Hosts = ["blade-prod", "blade-prod-a"]
+
+[Overrides] 
+  Concurrency = 2
