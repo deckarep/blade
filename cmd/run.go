@@ -123,6 +123,16 @@ func validateFlags() {
 	}
 }
 
+func applyRecipeFlagOverrides(currentRecipe *recipe.BladeRecipe, cobraCommand *cobra.Command) {
+	argsList := currentRecipe.Argument.Set
+
+	if len(argsList) > 0 {
+		for _, arg := range argsList {
+			cobraCommand.Flags().StringVarP(&arg.FlagValue, arg.Arg, "", "", arg.Help+" (recipe flag)")
+		}
+	}
+}
+
 func applyFlagOverrides(recipe *recipe.BladeRecipe) {
 	if hosts != "" {
 		recipe.Required.Hosts = strings.Split(hosts, ",")
@@ -185,6 +195,7 @@ func generateCommandLine() {
 				if strings.HasSuffix(p, "blade.toml") {
 					// Set the Use to just {recipe-name} of {recipe-name}.blade.toml.
 					currentCommand.Use = strings.TrimSuffix(p, ".blade.toml")
+					applyRecipeFlagOverrides(currentRecipe, currentCommand)
 					currentCommand.Run = func(cmd *cobra.Command, args []string) {
 						// Apply validation of flags if used.
 						validateFlags()
@@ -195,7 +206,7 @@ func generateCommandLine() {
 						// TODO: allows for tweaking beahvior of sessions such as verbosity or quiet mode.
 						modifier := bladessh.NewSessionModifier()
 						// Finally kick off session of requests.
-						bladessh.StartSSHSession(currentRecipe, modifier)
+						bladessh.StartSession(currentRecipe, modifier)
 					}
 				}
 

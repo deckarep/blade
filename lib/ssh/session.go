@@ -46,8 +46,8 @@ var (
 	sessionLogger         = log.New(os.Stdout, "", 0)
 )
 
-// StartSSHSession kicks off a session of work.
-func StartSSHSession(recipe *recipe.BladeRecipe, modifier *SessionModifier) {
+// StartSession kicks off a session of work.
+func StartSession(recipe *recipe.BladeRecipe, modifier *SessionModifier) {
 	// Assumme root.
 	if recipe.Overrides.User == "" {
 		recipe.Overrides.User = "root"
@@ -61,7 +61,11 @@ func StartSSHSession(recipe *recipe.BladeRecipe, modifier *SessionModifier) {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	sshCmds := recipe.Required.Commands
+	// Apply recipe args. TODO: don't loop twice here, then later for each cmd processing.
+	sshCmds, err := applyRecipeArgs(recipe.Argument.Set, recipe.Required.Commands)
+	if err != nil {
+		log.Fatal("Failed to apply recipe arguments to commands with err:", err.Error())
+	}
 
 	// Concurrency must be at least 1 to make progress.
 	if recipe.Overrides.Concurrency == 0 {
@@ -137,4 +141,29 @@ func startSSHSession(sshConfig *ssh.ClientConfig, hostname string, commands []st
 	// Technically this is only successful when errors didn't occur above.
 	atomic.AddInt32(&successfullyCompleted, 1)
 	return nil
+}
+
+func applyRecipeArgs(args []*recipe.Arg, commands []string) ([]string, error) {
+	if len(args) == 0 {
+		return commands, nil
+	}
+
+	// TODO: ensure at least all args are used at least once to minimize end-user errors.
+	// TODO: also allow the args to become flags so you can override at the command line.
+
+	var appliedResults []string
+	for _, cmd := range commands {
+		replacedCmd := cmd
+		for _, arg := range args {
+			argToken := fmt.Sprintf("{{%s}}", arg.Arg)
+			if arg.FlagValue != "" {
+				replacedCmd = strings.Replace(replacedCmd, argToken, arg.FlagValue, -1)
+			} else {
+				replacedCmd = strings.Replace(replacedCmd, argToken, arg.Value, -1)
+			}
+		}
+		appliedResults = append(appliedResults, replacedCmd)
+	}
+
+	return appliedResults, nil
 }

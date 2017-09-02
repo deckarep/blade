@@ -39,6 +39,18 @@ var recipeDumpCmd = &cobra.Command{
 	Short: "dumps a recipe",
 	Run: func(cmd *cobra.Command, args []string) {
 		s := &recipe.BladeRecipe{
+			Argument: &recipe.ArgumentsRecipe{
+				Set: []*recipe.Arg{
+					{
+						Arg:   "proj",
+						Value: "ebay-mailer",
+					},
+					{
+						Arg:   "exit_code",
+						Value: "4",
+					},
+				},
+			},
 			Required: &recipe.RequiredRecipe{
 				Commands: []string{"hostname"},
 				Hosts:    []string{"blade.local", "blade.prod.local", "blade.integ.local"},

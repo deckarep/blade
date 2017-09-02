@@ -21,40 +21,16 @@ SOFTWARE.
 
 package recipe
 
-func NewRecipe() *BladeRecipe {
-	return &BladeRecipe{
-		Argument: new(ArgumentsRecipe),
-		Required: new(RequiredRecipe),
-		Overrides: &OverridesRecipe{
-			Port: 22,
-		},
-		Help:        new(HelpRecipe),
-		Interaction: new(InteractionRecipe),
-		Resilience:  new(ResilienceRecipe),
-		Meta:        new(MetaRecipe),
-	}
+// ArgumentsRecipe allows you to specify arguments for your commands.
+type ArgumentsRecipe struct {
+	Set []*Arg
 }
 
-// // StepRecipe is an ordered series of recipes that will be attempted in the specified order.
-// // The parameters specified in this recipe supercede the parameters in the individual recipe.
-// type StepRecipe struct {
-// 	// Hmmm...does a step recipe inherit the properties above? Or does it have it's own similar specialized properties.
-// 	Recipe
-// 	Steps             []*Recipe
-// 	StepPauseDuration string
-// }
-
-// type AggregateRecipe struct {
-// 	Recipe
-// }
-
-// BladeRecipe is the root recipe type.
-type BladeRecipe struct {
-	Argument    *ArgumentsRecipe
-	Required    *RequiredRecipe
-	Overrides   *OverridesRecipe
-	Help        *HelpRecipe
-	Interaction *InteractionRecipe
-	Resilience  *ResilienceRecipe
-	Meta        *MetaRecipe
+// Arg is in the form of `user=myuser` and referenced in your command
+// like: `%myuser%`
+type Arg struct {
+	Arg       string
+	FlagValue string
+	Value     string
+	Help      string
 }
