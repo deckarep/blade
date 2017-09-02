@@ -177,7 +177,17 @@ What if we wanted to introduce some additional command line flags to our command
   Concurrency = 2
 ```
 
-Now at the command prompt if we type the following: `./blade run infra-a hostname --help`. We can see that we have introduced a new recipe flag called: `--name`.
+Now at the command prompt if we type the following: `./blade run infra-a hostname --help`. We can see that we have introduced a new recipe flag called: `--name`:
+
+```sh
+Usage:
+  blade run infra-a hostname [flags]
+
+Flags:
+  -h, --help          help for hostname
+      --name string   is the name to echo (recipe flag)
+...
+```
 
 Therefore executing the `hostname.blade.toml` file without a flag will simply perform the `echo` command with the name `Bob`.
 
