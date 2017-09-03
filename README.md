@@ -13,6 +13,8 @@ This gives you the power of running well-defined commands on fleets of servers i
 
 ### Tutorial
 
+In this tutorial, we're going to simulate creating a very basic command that we want to run on a infrastructure named: `infra-a`. But, Bladerunner doesn't care how you organize your folder hierarchy, you should model your folder hierachy based on the command hierarchy that you makes sense to you and your organization.
+
 In the `recipes/infra-a/` folder create this file and name it: `hostname.blade.toml`. This file has a single command that will be run on a single host.
 
 ```toml
