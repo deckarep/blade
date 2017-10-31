@@ -108,6 +108,16 @@ func StartSession(recipe *recipe.BladeRecipe, modifier *SessionModifier) {
 }
 
 func executeSession(sshConfig *ssh.ClientConfig, hostname string, commands []string) {
+
+	// inline user overrides sshConfig.User
+	userHost := strings.Split(hostname, "@")
+	if len(userHost) == 2 {
+		newSSHConfig := *sshConfig
+		sshConfig = &newSSHConfig
+		sshConfig.User = userHost[0]
+		hostname = userHost[1]
+	}
+
 	backoff.RetryNotify(func() error {
 		return startSSHSession(sshConfig, hostname, commands)
 	}, backoff.WithMaxTries(backoff.NewExponentialBackOff(), 3),
