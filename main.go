@@ -22,15 +22,13 @@ SOFTWARE.
 package main
 
 import (
-	"fmt"
-	"os"
+	"log"
 
 	"github.com/deckarep/blade/cmd"
 )
 
 func main() {
 	if err := cmd.RootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatalf("Failed to executed RootCmd with err:", err.Error())
 	}
 }
