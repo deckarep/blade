@@ -93,8 +93,8 @@ func enqueueHost(host string, port int) {
 	}
 
 	// Finally, enqueue it up for processing.
-	hostQueue <- host
 	hostWg.Add(1)
+	hostQueue <- host
 }
 
 func consumeReaderPipes(host string, rdr io.Reader, isStdErr bool, attempt int) {
@@ -102,7 +102,7 @@ func consumeReaderPipes(host string, rdr io.Reader, isStdErr bool, attempt int) 
 
 	if isStdErr {
 		attemptString := ""
-		if attempt > 0 {
+		if attempt > 1 {
 			attemptString = fmt.Sprintf(" (%s attempt)", humanize.Ordinal(attempt))
 		}
 		logHost = color.RedString(host + attemptString + ":")

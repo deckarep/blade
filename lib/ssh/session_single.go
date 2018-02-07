@@ -33,6 +33,7 @@ import (
 
 func newSingleExecution(client *ssh.Client, hostname, command string, index int) *singleExecution {
 	return &singleExecution{
+		attempt: 	  1,
 		client:       client,
 		command:      command,
 		commandIndex: index,
