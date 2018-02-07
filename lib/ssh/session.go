@@ -100,7 +100,7 @@ func StartSession(recipe *recipe.BladeRecipe, modifier *SessionModifier) {
 	}
 
 	hostWg.Wait()
-	log.Print(color.GreenString(fmt.Sprintf("Completed recipe: %s - %d sucess | %d failed | %d total",
+	log.Print(color.GreenString(fmt.Sprintf("Completed recipe: %s - %d success | %d failed | %d total",
 		recipe.Meta.Name,
 		atomic.LoadInt32(&successfullyCompleted),
 		atomic.LoadInt32(&failedCompleted),
