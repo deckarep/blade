@@ -102,8 +102,8 @@ func enqueueHost(host string, port int) {
 	}
 
 	// Finally, enqueue it up for processing.
-	hostWg.Add(1)
 	hostQueue <- host
+	hostWg.Add(1)
 }
 
 func consumeReaderPipes(host string, rdr io.Reader, isStdErr bool, attempt int) {
