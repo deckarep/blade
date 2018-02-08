@@ -59,22 +59,6 @@ func SSHAgent() ssh.AuthMethod {
 	return nil
 }
 
-// // LoadSSHUserName - thanks O.G. Sam.
-// func LoadSSHUserName() (string, error) {
-// 	sshFilePath := path.Join(os.Getenv("HOME"), ".ssh", "config")
-// 	sshConfig, err := ioutil.ReadFile(sshFilePath)
-// 	if err != nil {
-// 		return "", errors.New("could not load your SSH config")
-// 	}
-
-// 	re, _ := regexp.Compile(`User (\w+)`)
-// 	matches := re.FindStringSubmatch(string(sshConfig))
-// 	if len(matches) > 1 {
-// 		return matches[1], nil
-// 	}
-// 	return "", errors.New("could not find your SSH username. is it defined in ~/.ssh/config?")
-// }
-
 func ParseSSHConfig() ([]*sshconfig.SSHHost, error) {
 	usr, err := user.Current()
 	if err != nil {
