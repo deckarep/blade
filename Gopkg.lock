@@ -51,6 +51,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/mikkeloscar/sshconfig"
+  packages = ["."]
+  revision = "501286685510343458a6e698a18174f5242749f3"
+
+[[projects]]
+  branch = "master"
   name = "github.com/spf13/cobra"
   packages = ["."]
   revision = "b26b538f693051ac6518e65672de3144ce3fbedc"
@@ -82,6 +88,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b3b2905b8b4ca7a631e3dcc60d831bdb2f967d532adfb8372917cc6eb0a7f477"
+  inputs-digest = "17de581615065c3901e3467d1bbf7ee2d2024ed252b8c63135af4f716bfb030a"
   solver-name = "gps-cdcl"
   solver-version = 1

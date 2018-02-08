@@ -19,17 +19,31 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-package main
+package cmd
 
 import (
-	"log"
+	"fmt"
 
-	"github.com/deckarep/blade/cmd"
+	"github.com/deckarep/blade/lib/ssh"
+	"github.com/spf13/cobra"
 )
 
-func main() {
+func init() {
+	RootCmd.AddCommand(sshConfigCmd)
+}
 
-	if err := cmd.RootCmd.Execute(); err != nil {
-		log.Fatalf("Failed to execute RootCmd with err:", err.Error())
-	}
+var sshConfigCmd = &cobra.Command{
+	Use:   "sshconfig",
+	Short: "sshconfig",
+	Long: `sshconfig will dump the user's ~/.ssh/config file. Currently used for debugging purposes.
+		   Also since ssh config is not a standard no guarantee all ssh configs will parse`,
+	Run: func(cmd *cobra.Command, args []string) {
+		if ssh.ConfigMapping != nil {
+			for _, host := range ssh.ConfigMapping {
+				fmt.Printf("Host: %+v\n", host)
+			}
+			return
+		}
+		fmt.Println("User's ssh config was not parseable: Does the file ~/.ssh/config exist?")
+	},
 }

@@ -23,22 +23,33 @@ package ssh
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
+	"os/user"
 	"path"
-	"regexp"
 	"strings"
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/fatih/color"
+	"github.com/mikkeloscar/sshconfig"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
+
+var (
+	ConfigMapping []*sshconfig.SSHHost
+)
+
+func init() {
+	mapping, err := ParseSSHConfig()
+	if err != nil {
+		log.Println("Failed to parse SSHConfig mapping")
+	}
+	ConfigMapping = mapping
+}
 
 // SSHAgent queries the host operating systems SSH agent.
 func SSHAgent() ssh.AuthMethod {
@@ -48,20 +59,34 @@ func SSHAgent() ssh.AuthMethod {
 	return nil
 }
 
-// LoadSSHUserName - thanks O.G. Sam.
-func LoadSSHUserName() (string, error) {
-	sshFilePath := path.Join(os.Getenv("HOME"), ".ssh", "config")
-	sshConfig, err := ioutil.ReadFile(sshFilePath)
+// // LoadSSHUserName - thanks O.G. Sam.
+// func LoadSSHUserName() (string, error) {
+// 	sshFilePath := path.Join(os.Getenv("HOME"), ".ssh", "config")
+// 	sshConfig, err := ioutil.ReadFile(sshFilePath)
+// 	if err != nil {
+// 		return "", errors.New("could not load your SSH config")
+// 	}
+
+// 	re, _ := regexp.Compile(`User (\w+)`)
+// 	matches := re.FindStringSubmatch(string(sshConfig))
+// 	if len(matches) > 1 {
+// 		return matches[1], nil
+// 	}
+// 	return "", errors.New("could not find your SSH username. is it defined in ~/.ssh/config?")
+// }
+
+func ParseSSHConfig() ([]*sshconfig.SSHHost, error) {
+	usr, err := user.Current()
 	if err != nil {
-		return "", errors.New("could not load your SSH config")
+		return nil, err
 	}
 
-	re, _ := regexp.Compile(`User (\w+)`)
-	matches := re.FindStringSubmatch(string(sshConfig))
-	if len(matches) > 1 {
-		return matches[1], nil
+	hosts, err := sshconfig.ParseSSHConfig(path.Join(usr.HomeDir, ".ssh", "config"))
+	if err != nil {
+		return nil, err
 	}
-	return "", errors.New("could not find your SSH username. is it defined in ~/.ssh/config?")
+
+	return hosts, nil
 }
 
 func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, commands []string) {
