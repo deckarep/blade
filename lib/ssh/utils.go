@@ -40,15 +40,20 @@ import (
 )
 
 var (
-	ConfigMapping []*sshconfig.SSHHost
+	ConfigMapping map[string]*sshconfig.SSHHost
 )
 
 func init() {
-	mapping, err := ParseSSHConfig()
+	mapping, err := parseSSHConfig()
 	if err != nil {
 		log.Println("Failed to parse SSHConfig mapping")
 	}
-	ConfigMapping = mapping
+	ConfigMapping = make(map[string]*sshconfig.SSHHost)
+	for _, item := range mapping {
+		for _, h := range item.Host {
+			ConfigMapping[h] = item
+		}
+	}
 }
 
 // SSHAgent queries the host operating systems SSH agent.
@@ -59,7 +64,7 @@ func SSHAgent() ssh.AuthMethod {
 	return nil
 }
 
-func ParseSSHConfig() ([]*sshconfig.SSHHost, error) {
+func parseSSHConfig() ([]*sshconfig.SSHHost, error) {
 	usr, err := user.Current()
 	if err != nil {
 		return nil, err

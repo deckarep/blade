@@ -28,8 +28,7 @@ import (
 )
 
 func main() {
-
 	if err := cmd.RootCmd.Execute(); err != nil {
-		log.Fatalf("Failed to execute RootCmd with err:", err.Error())
+		log.Fatal("Failed to execute RootCmd with err:", err.Error())
 	}
 }

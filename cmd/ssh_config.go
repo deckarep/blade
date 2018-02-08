@@ -39,8 +39,8 @@ var sshConfigCmd = &cobra.Command{
 		   Also since ssh config is not a standard no guarantee all ssh configs will parse`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if ssh.ConfigMapping != nil {
-			for _, host := range ssh.ConfigMapping {
-				fmt.Printf("Host: %+v\n", host)
+			for k, v := range ssh.ConfigMapping {
+				fmt.Printf("key: %s, val: %+v\n", k, v)
 			}
 			return
 		}
