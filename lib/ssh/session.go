@@ -47,7 +47,7 @@ var (
 )
 
 // StartSession kicks off a Blade Recipe as a session of work to be completed.
-func StartSession(recipe *recipe.BladeRecipe, modifier *SessionModifier) {
+func StartSession(recipe *recipe.BladeRecipeYaml, modifier *SessionModifier) {
 	// Assumme root.
 	if recipe.Overrides.User == "" {
 		recipe.Overrides.User = "root"
@@ -64,7 +64,7 @@ func StartSession(recipe *recipe.BladeRecipe, modifier *SessionModifier) {
 	// Apply recipe will apply the recipe arguments to the commands
 	// assumming they're defined.
 	// TODO: don't loop twice here, then later for each cmd processing.
-	sshCmds, err := applyRecipeArgs(recipe.Argument.Set, recipe.Required.Commands)
+	sshCmds, err := applyRecipeArgs(recipe.Args, recipe.Exec)
 	if err != nil {
 		log.Fatal("Failed to apply recipe arguments to commands with err:", err.Error())
 	}
@@ -78,11 +78,11 @@ func StartSession(recipe *recipe.BladeRecipe, modifier *SessionModifier) {
 	go consumeAndLimitConcurrency(sshConfig, sshCmds)
 
 	// If Hosts is defined, just use that as a discrete list.
-	allHosts := recipe.Required.Hosts
+	allHosts := recipe.Hosts
 
 	if len(allHosts) == 0 {
 		// Otherwise do dynamic host lookup here.
-		commandSlice := strings.Split(recipe.Required.HostLookupCommand, " ")
+		commandSlice := strings.Split(recipe.HostLookup, " ")
 		out, err := exec.Command(commandSlice[0], commandSlice[1:]...).Output()
 		if err != nil {
 			fmt.Println("Couldn't execute command:", err.Error())
@@ -92,7 +92,7 @@ func StartSession(recipe *recipe.BladeRecipe, modifier *SessionModifier) {
 		allHosts = strings.Split(string(out), ",")
 	}
 
-	log.Print(color.GreenString(fmt.Sprintf("Starting recipe: %s", recipe.Meta.Name)))
+	log.Print(color.GreenString(fmt.Sprintf("Starting recipe: %s", recipe.Name)))
 
 	totalHosts := len(allHosts)
 	for _, h := range allHosts {
@@ -101,7 +101,7 @@ func StartSession(recipe *recipe.BladeRecipe, modifier *SessionModifier) {
 
 	hostWg.Wait()
 	log.Print(color.GreenString(fmt.Sprintf("Completed recipe: %s - %d success | %d failed | %d total",
-		recipe.Meta.Name,
+		recipe.Name,
 		atomic.LoadInt32(&successfullyCompleted),
 		atomic.LoadInt32(&failedCompleted),
 		totalHosts)))
@@ -155,7 +155,7 @@ func startSSHSession(sshConfig *ssh.ClientConfig, hostname string, commands []st
 	return nil
 }
 
-func applyRecipeArgs(args []*recipe.Arg, commands []string) ([]string, error) {
+func applyRecipeArgs(args recipe.BladeRecipeArguments, commands []string) ([]string, error) {
 	if len(args) == 0 {
 		return commands, nil
 	}
@@ -167,7 +167,7 @@ func applyRecipeArgs(args []*recipe.Arg, commands []string) ([]string, error) {
 	for _, cmd := range commands {
 		replacedCmd := cmd
 		for _, arg := range args {
-			argToken := fmt.Sprintf("{{%s}}", arg.Arg)
+			argToken := fmt.Sprintf("{{%s}}", arg.Value)
 			appliedFlagValue := arg.FlagValue()
 			if arg.FlagValue() != "" {
 				replacedCmd = strings.Replace(replacedCmd, argToken, appliedFlagValue, -1)

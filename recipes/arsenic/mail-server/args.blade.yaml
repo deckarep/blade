@@ -1,0 +1,9 @@
+hosts: ['blade-prod-a']
+args:
+    proj:
+      value: Ralph
+      help: proj is the user you want to use
+exec:
+  - echo {{proj}}
+overrides:
+  concurrency: 5

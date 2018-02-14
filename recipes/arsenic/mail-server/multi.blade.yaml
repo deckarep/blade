@@ -1,0 +1,9 @@
+hostlookup: "python knife node search prod"
+exec:
+  - hostname
+  - pwdn
+  - echo 'sleeping for 2 secs' && sleep 2
+  - echo 'hello world'
+  - date
+overrides:
+  concurrency: 5

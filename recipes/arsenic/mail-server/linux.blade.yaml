@@ -1,0 +1,5 @@
+hosts: ["blade-dev", "blade-prod", "blade-integ"]
+exec:
+  - cat /proc/version | awk '{print $3}'
+overrides:
+  concurrency: 3

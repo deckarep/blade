@@ -123,19 +123,17 @@ func validateFlags() {
 	}
 }
 
-func applyRecipeFlagOverrides(currentRecipe *recipe.BladeRecipe, cobraCommand *cobra.Command) {
-	argsList := currentRecipe.Argument.Set
-
-	if len(argsList) > 0 {
-		for _, arg := range argsList {
+func applyRecipeFlagOverrides(currentRecipe *recipe.BladeRecipeYaml, cobraCommand *cobra.Command) {
+	if len(currentRecipe.Args) > 0 {
+		for _, arg := range currentRecipe.Args {
 			arg.AttachFlag(cobraCommand)
 		}
 	}
 }
 
-func applyFlagOverrides(recipe *recipe.BladeRecipe) {
+func applyFlagOverrides(recipe *recipe.BladeRecipeYaml) {
 	if hosts != "" {
-		recipe.Required.Hosts = strings.Split(hosts, ",")
+		recipe.Hosts = strings.Split(hosts, ",")
 	}
 
 	if concurrency > 0 {
@@ -151,15 +149,15 @@ func generateCommandLine() {
 	fileList := scanBladeFolder("recipes/")
 	commands := make(map[string]*cobra.Command)
 
-	// For now let's skip the global.blade.toml file.
+	// For now let's skip the global.blade.yaml file.
 	for _, file := range fileList {
-		if strings.HasSuffix(file, ".blade.toml") &&
-			!strings.Contains(file, "global.blade.toml") {
+		if strings.HasSuffix(file, ".blade.yaml") &&
+			!strings.Contains(file, "global.blade.yaml") {
 			parts := strings.Split(file, "/")
 			var lastCommand *cobra.Command
 			lastCommand = nil
 
-			currentRecipe, err := recipe.LoadRecipe(file)
+			currentRecipe, err := recipe.LoadRecipeYaml(file)
 			if err != nil {
 				log.Println("Found a broken recipe...skipping: ", err.Error())
 				continue
@@ -167,8 +165,8 @@ func generateCommandLine() {
 
 			// parts[1:] drop the /recipe part.
 			remainingParts := parts[1:]
-			currentRecipe.Meta.Name = strings.TrimSuffix(strings.Join(remainingParts, "."), ".blade.toml")
-			currentRecipe.Meta.Filename = file
+			currentRecipe.Name = strings.TrimSuffix(strings.Join(remainingParts, "."), ".blade.toml")
+			currentRecipe.Filename = file
 
 			for _, p := range remainingParts {
 				var currentCommand *cobra.Command
@@ -192,9 +190,9 @@ func generateCommandLine() {
 				}
 
 				// If we're not a dir but a blade.toml...set it up to Run.
-				if strings.HasSuffix(p, "blade.toml") {
+				if strings.HasSuffix(p, "blade.yaml") {
 					// Set the Use to just {recipe-name} of {recipe-name}.blade.toml.
-					currentCommand.Use = strings.TrimSuffix(p, ".blade.toml")
+					currentCommand.Use = strings.TrimSuffix(p, ".blade.yaml")
 					applyRecipeFlagOverrides(currentRecipe, currentCommand)
 					currentCommand.Run = func(cmd *cobra.Command, args []string) {
 						// Apply validation of flags if used.

@@ -25,6 +25,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/deckarep/blade/lib/recipe"
 	"github.com/spf13/cobra"
 	yaml "gopkg.in/yaml.v1"
 )
@@ -41,43 +43,27 @@ var yamlCmd = &cobra.Command{
 
 		var data = `
 hosts: ['blade-prod-a', 'blade-prod-b']
+args:
+  username:
+    value: Ralph
+    help: username is the user you want to use
 exec:
   - echo "how are you?"
   - echo "Dood"
 overrides:
+  port: 22
   concurrency: 5
-  args:
-    username:
-      value: Ralph
-      help: username is the user you want to use
+resilience:
+  retries: 2
 `
 
-		var yc YamlConfig
+		var yc recipe.BladeRecipeYaml
 		err := yaml.Unmarshal([]byte(data), &yc)
 		if err != nil {
 			log.Fatalf("error: %v", err)
 		}
 
 		fmt.Println(yc.HasOverrides())
+		spew.Dump(yc)
 	},
-}
-
-type ArgumentDetails struct {
-	Value string
-	Help  string
-}
-
-type Arguments map[string]ArgumentDetails
-
-type YamlConfig struct {
-	Hosts     []string
-	Exec      []string
-	Overrides *struct {
-		Concurrency *int
-		Args        *Arguments
-	}
-}
-
-func (yc *YamlConfig) HasOverrides() bool {
-	return yc.Overrides != nil
 }

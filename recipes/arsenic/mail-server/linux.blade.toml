@@ -1,7 +1,0 @@
-[Required]
-  Commands = [
-    "cat /proc/version | awk '{print $3}'"
-  ]
-  Hosts = ["blade-dev", "blade-prod", "blade-integ"]
-[Overrides] 
-  Concurrency = 3

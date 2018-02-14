@@ -23,8 +23,10 @@ package recipe
 
 import (
 	"io/ioutil"
+	"log"
 
 	"github.com/BurntSushi/toml"
+	yaml "gopkg.in/yaml.v1"
 )
 
 func LoadRecipe(path string) (*BladeRecipe, error) {
@@ -41,8 +43,33 @@ func LoadRecipe(path string) (*BladeRecipe, error) {
 		return nil, err
 	}
 
-	// The first _ in toml.Decode is a meta property with more interesting details.
-	//fmt.Println(meta.IsDefined("PromptBanner"))
-
 	return rec, nil
+}
+
+func LoadRecipeYaml(path string) (*BladeRecipeYaml, error) {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		// TODO: errors.Wrap
+		return nil, err
+	}
+
+	var rec BladeRecipeYaml
+	err = yaml.Unmarshal(b, &rec)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+
+	if rec.Help == nil {
+		rec.Help = &BladeRecipeHelp{}
+	}
+
+	if rec.Overrides == nil {
+		rec.Overrides = &BladeRecipeOverrides{}
+	}
+
+	if rec.Resilience == nil {
+		rec.Resilience = &BladeRecipeResilience{}
+	}
+
+	return &rec, nil
 }
