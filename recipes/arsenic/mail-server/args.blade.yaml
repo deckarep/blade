@@ -4,6 +4,6 @@ args:
       value: Ralph
       help: proj is the user you want to use
 exec:
-  - echo {{proj}}
+  - echo 'Hello {{proj}}'
 overrides:
   concurrency: 5

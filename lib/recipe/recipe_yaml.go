@@ -3,9 +3,11 @@ package recipe
 import "github.com/spf13/cobra"
 
 type BladeArgumentDetails struct {
-	Value     string
-	Help      string
+	Value string
+	Help  string
+
 	flagValue string
+	argName   string
 }
 
 // AttachFlag allows you to pass in a Cobra command if you'd like to attach an override
@@ -21,6 +23,11 @@ func (a *BladeArgumentDetails) FlagValue() string {
 		return a.flagValue
 	}
 	return a.Value
+}
+
+// Name returns the argument name or what string is in the {{}} construct.
+func (a *BladeArgumentDetails) Name() string {
+	return a.argName
 }
 
 type BladeRecipeArguments map[string]*BladeArgumentDetails

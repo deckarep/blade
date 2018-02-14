@@ -167,7 +167,7 @@ func applyRecipeArgs(args recipe.BladeRecipeArguments, commands []string) ([]str
 	for _, cmd := range commands {
 		replacedCmd := cmd
 		for _, arg := range args {
-			argToken := fmt.Sprintf("{{%s}}", arg.Value)
+			argToken := fmt.Sprintf("{{%s}}", arg.Name())
 			appliedFlagValue := arg.FlagValue()
 			if arg.FlagValue() != "" {
 				replacedCmd = strings.Replace(replacedCmd, argToken, appliedFlagValue, -1)

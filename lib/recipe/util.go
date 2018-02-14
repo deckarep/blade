@@ -59,6 +59,13 @@ func LoadRecipeYaml(path string) (*BladeRecipeYaml, error) {
 		log.Fatalf("error: %v", err)
 	}
 
+	// Each argument needs to capture it's arg name for later processing.
+	if len(rec.Args) > 0 {
+		for argName, argVal := range rec.Args {
+			argVal.argName = argName
+		}
+	}
+
 	if rec.Help == nil {
 		rec.Help = &BladeRecipeHelp{}
 	}
