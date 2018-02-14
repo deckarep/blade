@@ -22,11 +22,6 @@ SOFTWARE.
 package cmd
 
 import (
-	"log"
-	"os"
-
-	"github.com/BurntSushi/toml"
-	"github.com/deckarep/blade/lib/recipe"
 	"github.com/spf13/cobra"
 )
 
@@ -38,50 +33,50 @@ var recipeDumpCmd = &cobra.Command{
 	Use:   "dump",
 	Short: "dumps a recipe",
 	Run: func(cmd *cobra.Command, args []string) {
-		s := &recipe.BladeRecipe{
-			Argument: &recipe.ArgumentsRecipe{
-				Set: []*recipe.Arg{
-					{
-						Arg:   "proj",
-						Value: "ebay-mailer",
-					},
-					{
-						Arg:   "exit_code",
-						Value: "4",
-					},
-				},
-			},
-			Required: &recipe.RequiredRecipe{
-				Commands: []string{"hostname"},
-				Hosts:    []string{"blade.local", "blade.prod.local", "blade.integ.local"},
-			},
-			Overrides: &recipe.OverridesRecipe{
-				Concurrency: 7,
-				User:        "john",
-			},
-			Resilience: &recipe.ResilienceRecipe{
-				WaitDuration:           "5s", // <-- time to sleep after command exits.
-				Retries:                3,
-				RetryBackoffStrategy:   "Exponential",
-				RetryBackoffMultiplier: "5s",
-				FailBatch:              true,
-			},
-			Help: &recipe.HelpRecipe{
-				Usage: "boom",
-				Short: "Does something cool",
-				Long: `This recipe does something cool and also makes sure to blah...blah...blah. Also it's 
-				supposed to ensure that blah blah and so you can be assured that it works great.`,
-			},
-			Interaction: &recipe.InteractionRecipe{
-				Banner:       "Are you sure you want to continue?",
-				PromptBanner: true,
-				PromptColor:  "red",
-			},
-		}
+		// s := &recipe.BladeRecipe{
+		// 	Argument: &recipe.ArgumentsRecipe{
+		// 		Set: []*recipe.Arg{
+		// 			{
+		// 				Arg:   "proj",
+		// 				Value: "ebay-mailer",
+		// 			},
+		// 			{
+		// 				Arg:   "exit_code",
+		// 				Value: "4",
+		// 			},
+		// 		},
+		// 	},
+		// 	Required: &recipe.RequiredRecipe{
+		// 		Commands: []string{"hostname"},
+		// 		Hosts:    []string{"blade.local", "blade.prod.local", "blade.integ.local"},
+		// 	},
+		// 	Overrides: &recipe.OverridesRecipe{
+		// 		Concurrency: 7,
+		// 		User:        "john",
+		// 	},
+		// 	Resilience: &recipe.ResilienceRecipe{
+		// 		WaitDuration:           "5s", // <-- time to sleep after command exits.
+		// 		Retries:                3,
+		// 		RetryBackoffStrategy:   "Exponential",
+		// 		RetryBackoffMultiplier: "5s",
+		// 		FailBatch:              true,
+		// 	},
+		// 	Help: &recipe.HelpRecipe{
+		// 		Usage: "boom",
+		// 		Short: "Does something cool",
+		// 		Long: `This recipe does something cool and also makes sure to blah...blah...blah. Also it's
+		// 		supposed to ensure that blah blah and so you can be assured that it works great.`,
+		// 	},
+		// 	Interaction: &recipe.InteractionRecipe{
+		// 		Banner:       "Are you sure you want to continue?",
+		// 		PromptBanner: true,
+		// 		PromptColor:  "red",
+		// 	},
+		// }
 
-		err := toml.NewEncoder(os.Stdout).Encode(&s)
-		if err != nil {
-			log.Fatal("Failed to encode your recipe sucka!")
-		}
+		// err := toml.NewEncoder(os.Stdout).Encode(&s)
+		// if err != nil {
+		// 	log.Fatal("Failed to encode your recipe sucka!")
+		// }
 	},
 }

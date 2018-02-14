@@ -25,26 +25,8 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/BurntSushi/toml"
 	yaml "gopkg.in/yaml.v1"
 )
-
-func LoadRecipe(path string) (*BladeRecipe, error) {
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		// TODO: errors.Wrap
-		return nil, err
-	}
-
-	rec := NewRecipe()
-	_, err = toml.Decode(string(b), rec)
-	if err != nil {
-		// TODO: errors.Wrap
-		return nil, err
-	}
-
-	return rec, nil
-}
 
 func LoadRecipeYaml(path string) (*BladeRecipeYaml, error) {
 	b, err := ioutil.ReadFile(path)
