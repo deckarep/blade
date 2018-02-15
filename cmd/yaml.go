@@ -63,7 +63,6 @@ resilience:
 			log.Fatalf("error: %v", err)
 		}
 
-		fmt.Println(yc.HasOverrides())
 		spew.Dump(yc)
 	},
 }

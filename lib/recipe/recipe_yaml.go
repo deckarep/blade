@@ -88,6 +88,6 @@ type BladeRecipeYaml struct {
 	Resilience *BladeRecipeResilience
 }
 
-func (yc *BladeRecipeYaml) HasOverrides() bool {
-	return yc.Overrides != nil
-}
+// func (yc *BladeRecipeYaml) OverridesDefined() bool {
+// 	return yc.Overrides != nil
+// }

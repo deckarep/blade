@@ -28,6 +28,11 @@ func NewSessionModifier() *SessionModifier {
 
 // SessionModifier holds session specific modifier settings that tweak session behavior.
 type SessionModifier struct {
-	Verbose bool
-	Quiet   bool
+	Verbose       bool
+	Quiet         bool
+	FlagOverrides struct {
+		Concurrency int
+		Hosts       []string
+		Port        int
+	}
 }

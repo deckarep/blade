@@ -131,17 +131,17 @@ func applyRecipeFlagOverrides(currentRecipe *recipe.BladeRecipeYaml, cobraComman
 	}
 }
 
-func applyFlagOverrides(recipe *recipe.BladeRecipeYaml) {
+func applyFlagOverrides(recipe *recipe.BladeRecipeYaml, modifier *bladessh.SessionModifier) {
 	if hosts != "" {
-		recipe.Hosts = strings.Split(hosts, ",")
+		modifier.FlagOverrides.Hosts = strings.Split(strings.TrimSpace(hosts), ",")
 	}
 
 	if concurrency > 0 {
-		recipe.Overrides.Concurrency = concurrency
+		modifier.FlagOverrides.Concurrency = concurrency
 	}
 
 	if port > 0 {
-		recipe.Overrides.Port = port
+		modifier.FlagOverrides.Port = port
 	}
 }
 
@@ -198,11 +198,11 @@ func generateCommandLine() {
 						// Apply validation of flags if used.
 						validateFlags()
 
-						// Apply flag overrides to the recipe here.
-						applyFlagOverrides(currentRecipe)
-
-						// TODO: allows for tweaking beahvior of sessions such as verbosity or quiet mode.
 						modifier := bladessh.NewSessionModifier()
+
+						// Apply flag overrides to the recipe here.
+						applyFlagOverrides(currentRecipe, modifier)
+
 						// Finally kick off session of requests.
 						bladessh.StartSession(currentRecipe, modifier)
 					}

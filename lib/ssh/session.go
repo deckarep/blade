@@ -77,10 +77,15 @@ func StartSession(recipe *recipe.BladeRecipeYaml, modifier *SessionModifier) {
 	concurrencySem = make(chan int, recipe.Overrides.Concurrency)
 	go consumeAndLimitConcurrency(sshConfig, sshCmds)
 
-	// If Hosts is defined, just use that as a discrete list.
-	allHosts := recipe.Hosts
-
+	// Flags take precedence.
+	allHosts := modifier.FlagOverrides.Hosts
 	if len(allHosts) == 0 {
+		// Then Hosts declared on the recipe.
+		allHosts = recipe.Hosts
+	}
+
+	// Finally HostLookup takes last precedence.
+	if len(allHosts) == 0 && recipe.HostLookup != "" {
 		// Otherwise do dynamic host lookup here.
 		commandSlice := strings.Split(recipe.HostLookup, " ")
 		out, err := exec.Command(commandSlice[0], commandSlice[1:]...).Output()
@@ -92,11 +97,23 @@ func StartSession(recipe *recipe.BladeRecipeYaml, modifier *SessionModifier) {
 		allHosts = strings.Split(string(out), ",")
 	}
 
+	if len(allHosts) == 0 {
+		log.Fatalf("No host or hostlookup defined for this recipe, alternatively use the --servers flag.")
+	}
+
 	log.Print(color.GreenString(fmt.Sprintf("Starting recipe: %s", recipe.Name)))
+
+	actualPort := modifier.FlagOverrides.Port
+	if actualPort == 0 {
+		actualPort = recipe.Overrides.Port
+	}
+	if actualPort == 0 {
+		actualPort = 22
+	}
 
 	totalHosts := len(allHosts)
 	for _, h := range allHosts {
-		enqueueHost(h, recipe.Overrides.Port)
+		enqueueHost(h, actualPort)
 	}
 
 	hostWg.Wait()
