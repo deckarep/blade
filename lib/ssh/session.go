@@ -69,12 +69,16 @@ func StartSession(recipe *recipe.BladeRecipeYaml, modifier *SessionModifier) {
 		log.Fatal("Failed to apply recipe arguments to commands with err:", err.Error())
 	}
 
+	actualConcurrency := modifier.FlagOverrides.Concurrency
+	if actualConcurrency == 0 {
+		actualConcurrency = recipe.Overrides.Concurrency
+	}
 	// Concurrency must be at least 1 to make progress.
-	if recipe.Overrides.Concurrency == 0 {
-		recipe.Overrides.Concurrency = 1
+	if actualConcurrency == 0 {
+		actualConcurrency = 1
 	}
 
-	concurrencySem = make(chan int, recipe.Overrides.Concurrency)
+	concurrencySem = make(chan int, actualConcurrency)
 	go consumeAndLimitConcurrency(sshConfig, sshCmds)
 
 	// Flags take precedence.
