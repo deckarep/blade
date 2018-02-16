@@ -1,0 +1,7 @@
+language: go
+go:
+    - 1.9
+    - tip
+# TODO: write unit-tests :)
+script:
+    - go build
