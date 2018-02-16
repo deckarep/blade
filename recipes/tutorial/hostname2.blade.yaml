@@ -1,0 +1,5 @@
+# Two hosts, with two commands executed in serial on each host.
+hosts: ["blade-dev", "blade-prod"]
+exec:
+  - hostname
+  - sleep 5

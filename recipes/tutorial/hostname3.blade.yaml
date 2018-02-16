@@ -1,0 +1,7 @@
+# Two hosts, with two commands executed simultaneously leveraging concurrent execution.
+hosts: ["blade-dev", "blade-prod"]
+exec:
+  - echo "starting `hostname`"
+  - sleep 5
+overrides:
+  concurrency: 2

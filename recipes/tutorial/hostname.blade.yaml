@@ -1,0 +1,4 @@
+# Single host, single command.
+hosts: ["blade-dev"]
+exec:
+  - hostname

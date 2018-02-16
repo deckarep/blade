@@ -1,36 +1,34 @@
-Bladerunner
-===========
+Blade
+=====
 
-NOTE: Bladerunner is an unstable alpha API -- constructive feedback welcome.
+NOTE: Blade is an unstable alpha API -- constructive feedback welcome.
 
-Bladerunner is an SSH based remote command runner tool that attempts to capture best-practices when
-managing remote infrastructure inside TOML files. These TOML files are meant to be under source control and shared with team-mates. A Bladerunner `.blade.toml` file holds the declarative instructions for running one or more remote commands on one or more servers.
+Blade is an SSH based remote command runner tool that attempts to capture best-practices when
+managing remote infrastructure inside .yaml files. These .yaml files are meant to be under source control and shared with team-mates. A Blade `.blade.yaml` file holds the declarative instructions for running one or more remote commands on one or more servers.
 
-This gives you the power of running well-defined commands on fleets of servers in a simple, expressive and easy to use CLI interface. Add some `.blade.toml` recipe commands to your `recipe/` folder in a hierarchy that makes sense to you and Bladerunner will build a slick CLI dynamically for you based on this folder structure. Then you're ready to start using the tool.
+This gives you the power of running well-defined commands on fleets of servers in a simple, expressive and easy to use CLI interface. Add some `.blade.yaml` recipe commands to your `recipe/` folder in a hierarchy that makes sense to you and Blade will build a slick CLI dynamically for you based on this folder structure. Then you're ready to start using the tool.
 
 ### Demo
-[![asciicast](https://asciinema.org/a/LrTB1qOLYyRCVw7S4yEHnl950.png)](https://asciinema.org/a/LrTB1qOLYyRCVw7S4yEHnl950)
+TODO
 
 ### Tutorial
 
-In this tutorial, we're going to simulate creating a very basic command that we want to run on a infrastructure named: `infra-a`. But, Bladerunner doesn't care how you organize your folder hierarchy, you should model your folder hierachy based on the command hierarchy that you makes sense to you and your organization.
+In this tutorial, we're going to simulate creating a very basic command that we want to run on a infrastructure named: `tutorial`. Blade doesn't care how you organize your folder hierarchy but you should model your folder hierachy based on the command hierarchy that you makes sense to you and your organization.
 
-In the `recipes/infra-a/` folder create this file and name it: `hostname.blade.toml`. This file has a single command that will be run on a single host.
+In the `recipes/tutorial/` folder create this file and name it: `hostname.blade.yaml`. This file has a single command that will be run on a single host.
 
-```toml
-[Required]
-  Commands = [
-    "hostname"
-  ]
-  Hosts = ["blade-prod"]
+```yaml
+hosts: ["blade-dev"]
+exec:
+  - hostname
 ```
 
 Place the file above in the following folder hierarchy.
 
 ```
 recipes
-└── infra-a
-    └── hostname.blade.toml
+└── tutorial
+    └── hostname.blade.yaml
 ```
 
 Run the following command:
@@ -47,169 +45,108 @@ Usage:
   blade run [command]
 
 Available Commands:
-  infra-a
+  tutorial
 
 Flags:
-  -c, --concurrency int   Max concurrency when running ssh commands
   -h, --help              help for run
-  -p, --port int          The ssh port to use (default 22)
-  -q, --quiet             quiet mode will keep Blade as silent as possible.
-  -r, --retries int       Number of times to retry until a successful command returns (default 3)
-  -s, --servers string    servers flag is one or more comma-delimited servers.
-  -u, --user string       user for ssh host login. (default "root")
-  -v, --verbose           verbose mode will keep Blade as verbose as possible.
+  ...
 ```
 
-Notice that Bladerunner has a `run` command. This is the primary entry point into executing commands. But additionally, Bladerunner has a subcommand named `infra-a`.  Let's run that subcommand now.
+Notice that Blade's `run` command is aware of the `tutorial` folder. The `run` command is the primary entry point into executing .yaml files.
+
+Now run the `tutorial` command and notice that you now have a `hostname` command available.
 
 ```sh
-./blade run infra-a
+./blade run tutorial
+```
 
-# Output below:
-./blade run infra-a
+```
 Usage:
-  blade run infra-a [command]
+  blade run tutorial [command]
 
 Available Commands:
   hostname
 
 Flags:
-  ...
+  -h, --help   help for tutorial
 ```
 
-You'll notice that Bladerunner dumps another help synopsis showing that a single available command exists named `hostname`. 
-
-At which now you can run like so:
+The idea here is that a folder represents a command of which sub-commands can be executed. This implies that "folder" based command does nothing more than group sub-commands of which *can* be executed like so:
 
 ```sh
-./blade run infra-a hostname
-
-# Output below:
-2017/09/02 13:35:34 Starting recipe: infra-a.hostname
-blade-prod: blade2
-2017/09/02 13:35:35 Completed recipe: infra-a.hostname - 1 sucess | 0 failed | 1 total
+./blade run tutorial hostname
 ```
 
-At this point you've observed that a series of subcommands were dynamically added to Bladerunner based on your folder hierarchy and your defined TOML commands.  The folders allow you to organize commands into a hierarchy that reflects your ideal infrastructure. Folders although subcommands, are not executable themselves but simply a means of giving you the ability to build a smart command hierarchy that is intuitive and easy to remember.
+```
+# Output below:
+2018/02/15 22:15:44 Starting recipe: tutorial.hostname.blade.yaml
+blade-dev: blade-dev
+2018/02/15 22:15:46 Completed recipe: tutorial.hostname.blade.yaml - 1 success | 0 failed | 1 total
+```
 
-At this point, we've executed a single remote command called `hostname` on a single remote host called `blade-prod`. `blade-prod` is a remote server that I've set up on Vultr for the purpose of building this tool but it ultimately could be any server that you have access to where your SSH public-key is configured.
-
+At this point, we've executed a single remote command called `hostname` on a single remote host called `blade-dev`. 
 Let's modify our single `hostname.blade.toml` file to run on more hosts.
 
-```toml
-[Required]
-  Commands = [
-    "hostname"
-  ]
-  Hosts = ["blade-prod", "blade-prod-a"]
+```yaml
+hosts: ["blade-dev", "blade-prod"]
+exec:
+  - hostname
 ```
 
 Here we've defined another host we have access to and we can now rerun our command:
 
 ```sh
-./blade run infra-a hostname
-
-# Output below:
-2017/09/02 13:47:50 Starting recipe: infra-a.hostname
-blade-prod: blade2
-blade-prod-a: blade2
-2017/09/02 13:47:52 Completed recipe: infra-a.hostname - 2 sucess | 0 failed | 2 total
+./blade run tutorial hostname
 ```
 
-As you can see, Bladerunner now executed a single command on each remote host defined. This execution happened in a serial fashion where only a single host was executed at a time. Note: The reason you see the same output is because I currently have my `/etc/hosts` file modified to have multiple aliases pointing to the same server instance.
+```
+# Output below:
+2018/02/15 22:19:14 Starting recipe: tutorial.hostname.blade.yaml
+blade-dev: blade-dev
+blade-prod: blade-prod
+2018/02/15 22:19:17 Completed recipe: tutorial.hostname.blade.yaml - 2 success | 0 failed | 2 total
+```
+
+As you can see, Blade has now executed a single command on each remote host. This execution happened in a serial fashion where only a single host was executed at a time.
 
 Let's modify the `hostname.blade.toml` to execute an additional command per host and save that change.
 
-```toml
-[Required]
-  Commands = [
-    "sleep 5",
-    "hostname"
-  ]
-  Hosts = ["blade-prod", "blade-prod-a"]
+```yaml
+hosts: ["blade-dev", "blade-prod"]
+exec:
+  - hostname
+  - sleep 5
 ```
 
-Rerun the command: `./blade run infra-a hostname` and observe that for each host running there is a 5 second delay due to the first sleep command. This means, that because we execute these commands in serial on one host first, then the other Bladerunner will take a total of 10 seconds to complete.
+Rerun the command: `./blade run tutorial hostname` and observe that for each host running there is a 5 second delay due to the sleep command. This means, that because we execute these commands in serial on one host first, then the other Blade will take a total of 10 seconds to complete for both hosts.
 
 But, with the power of concurrency, we can update our `hostname.blade.toml` file to have our commands executed at a concurrency level of 2. Let's also add a third `echo` command so we can observe how this changes the behavior of our run.
 
-```toml
-[Required]
-  Commands = [
-    "echo 'before sleep'",
-    "sleep 5",
-    "hostname"
-  ]
-  Hosts = ["blade-prod", "blade-prod-a"]
-
-[Overrides] 
-  Concurrency = 2
+```yaml
+hosts: ["blade-dev", "blade-prod"]
+exec:
+  - echo "starting `hostname`"
+  - sleep 5
+overrides:
+  concurrency: 2
 ```
 
-Rerun the command: `/.blade run infra-a hostname` and now observe that because we added a concurrency override of 2 that although we have a sleep delay of 5 seconds, both servers start and execute these remote commands and the entire Bladerunner session finishes in about 5 seconds.
+Rerun the command: `/.blade run tutorial hostname` and now observe that because we added a concurrency override of 2 and even though we have a sleep delay of 5 seconds, both servers start and execute these remote commands and the entire Blade session finishes in about 5 seconds.
 
-Instead of updating our `hostname.blade.toml` file we additionally could have used Bladerunner's command-line flags to override the concurrency behavior like so:
+Instead of updating our `hostname.blade.toml` file we additionally could have used Blade's command-line flags to override the concurrency behavior like so:
 
 ```sh
-./blade run infra-a hostname -c1 # or --concurrency 1
+./blade run tutorial hostname -c2 # or --concurrency 2
 ```
 
-This effectively acheives the same thing but instead controls the concurrency amount via the usage of an ad-hoc command line.
-
-What if we wanted to introduce some additional command line flags to our commands to dynamically change their behavior in an ad-hoc fashion before execution? We can do this by introducing `Argument Sets` as in the following:
-
-```toml
-[Argument]
-  [[Argument.Set]]
-    Arg = "name"
-    Value = "Bob"
-    Help = "is the name to echo"
-    
-[Required]
-  Commands = [
-    "echo '{{name}}'",
-    "hostname"
-  ]
-  Hosts = ["blade-prod", "blade-prod-a"]
-
-[Overrides] 
-  Concurrency = 2
-```
-
-Now at the command prompt if we type the following: `./blade run infra-a hostname --help`. We can see that we have introduced a new recipe flag called: `--name`:
-
-```sh
-Usage:
-  blade run infra-a hostname [flags]
-
-Flags:
-  -h, --help          help for hostname
-      --name string   is the name to echo (recipe flag)
-...
-```
-
-Therefore executing the `hostname.blade.toml` file without a flag will simply perform the `echo` command with the name `Bob`.
-
-And overriding this command is simply a matter of: `./blade run infra-a hostname --name Deckarep`.
-
-And the output now looks like the following:
-
-```sh
-2017/09/02 14:07:27 Starting recipe: infra-a.hostname
-blade-prod-a: Jerry
-blade-prod: Jerry
-blade-prod-a: blade2
-blade-prod: blade2
-2017/09/02 14:07:28 Completed recipe: infra-a.hostname - 2 sucess | 0 failed | 2 total
-```
-
+This effectively acheives the same thing but instead controls the concurrency amount via the usage of an ad-hoc command line flag.
 
 ### Features
-* Bladeruuner is incredibly light-weight: 1 goroutine per ssh connection vs 1 os thread per ssh connection.
-* And Recipes which are composed commands to enforce better and consistent administration across the organization
+* Blade is incredibly light-weight: 1 goroutine per ssh connection vs 1 os thread per ssh connection.
+* Recipes are composed commands to enforce better and consistent administration across an organization.
 * Enforces proper concurrency restrictions when running remote commands.
 * Colorized output for easier groking.
-* Automatically ensures all commands run properly and possibly retried.
+* Automatically ensures all commands run successfully with optional retry.
 * TODO: Recipes of Recipes, recipes are composable.
 * TODO: Summaries for when you don't want to see a bunch git-hashes streaming by, just tell me if everything matches please.
 * TODO: Allows user-specific recipe overrides.

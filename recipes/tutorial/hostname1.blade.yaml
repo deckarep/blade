@@ -1,0 +1,4 @@
+# Two hosts, with a single command executed on each host.
+hosts: ["blade-dev", "blade-prod"]
+exec:
+  - hostname
