@@ -1,5 +1,6 @@
 hostlookup: python knife node search prod
 exec:
+  - ps aux | grep sshd
   - cat /proc/version | awk '{print $3}'
 overrides:
   concurrency: 5

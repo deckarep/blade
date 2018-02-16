@@ -38,7 +38,6 @@ import (
 )
 
 var (
-	concurrencySem        chan int
 	hostQueue             = make(chan string)
 	hostWg                sync.WaitGroup
 	successfullyCompleted int32
@@ -73,13 +72,13 @@ func StartSession(recipe *recipe.BladeRecipeYaml, modifier *SessionModifier) {
 	if actualConcurrency == 0 {
 		actualConcurrency = recipe.Overrides.Concurrency
 	}
+
 	// Concurrency must be at least 1 to make progress.
 	if actualConcurrency == 0 {
 		actualConcurrency = 1
 	}
 
-	concurrencySem = make(chan int, actualConcurrency)
-	go consumeAndLimitConcurrency(sshConfig, sshCmds)
+	go consumeAndLimitConcurrency(sshConfig, sshCmds, actualConcurrency)
 
 	// Flags take precedence.
 	allHosts := modifier.FlagOverrides.Hosts

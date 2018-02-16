@@ -78,7 +78,10 @@ func parseSSHConfig() ([]*sshconfig.SSHHost, error) {
 	return hosts, nil
 }
 
-func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, commands []string) {
+func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, commands []string, concurrency int) {
+	// Limit the amount of concurrent ssh sessions.
+	concurrencySem := make(chan int, concurrency)
+
 	for host := range hostQueue {
 		concurrencySem <- 1
 		go func(h string) {
