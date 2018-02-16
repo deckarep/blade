@@ -1,5 +1,5 @@
 [Required]
-  # At a minimum you need a command.
+  # At a minimum you need a command
   Commands = [
     "hostname"
   ]
