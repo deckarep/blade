@@ -1,3 +1,4 @@
+# Commented out as example of blade exiting and forcing the user to use --servers list.
 # hosts: ["blade-dev"]
 exec:
   - cat /proc/version | awk '{print $3}'
