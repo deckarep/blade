@@ -104,15 +104,12 @@ func validateFlags() {
 	if concurrency < 0 {
 		log.Fatal("The specified --concurrency flag must not be a negative number.")
 	}
-
 	if port < 22 {
 		log.Fatal("The specified --port flag must be 22 or greater.")
 	}
-
 	if quiet && verbose {
 		log.Fatal("You must specify either --quiet or --verbose but not both.")
 	}
-
 	if retries < 0 {
 		log.Fatal("The specified --retries flag must not be a negative number.")
 	}
@@ -175,6 +172,17 @@ func userHomeDir() string {
 	return path.Join(os.Getenv("HOME"), bladeHiddenFolder)
 }
 
+func indexOfRecipeFolder(parts []string) int {
+	var recipeIndex = 0
+	for index, part := range parts {
+		if part == bladeRecipesFolder {
+			recipeIndex = index
+			break
+		}
+	}
+	return recipeIndex
+}
+
 func generateCommandLine() {
 	fileList := searchFolders(userHomeDir(), bladeRecipesFolder)
 	commands := make(map[string]*cobra.Command)
@@ -193,15 +201,7 @@ func generateCommandLine() {
 			}
 
 			// Find and drop all /recipes folders including all parent dirs.
-			var recipeIndex = 0
-			for index, part := range parts {
-				if part == bladeRecipesFolder {
-					recipeIndex = index
-					break
-				}
-			}
-
-			remainingParts := parts[recipeIndex+1:]
+			remainingParts := parts[indexOfRecipeFolder(parts)+1:]
 			currentRecipe.Name = strings.TrimSuffix(strings.Join(remainingParts, "."), bladeRecipeSuffix)
 			currentRecipe.Filename = file
 
@@ -227,19 +227,16 @@ func generateCommandLine() {
 				}
 
 				// If we're not a dir but a blade.toml...set it up to Run.
-				if strings.HasSuffix(p, "blade.yaml") {
-					// Set the Use to just {recipe-name} of {recipe-name}.blade.toml.
-					currentCommand.Use = strings.TrimSuffix(p, ".blade.yaml")
+				if strings.HasSuffix(p, bladeRecipeSuffix) {
+					// Set the Use to just {recipe-name} of {recipe-name}.{bladeRecipeSuffix}.
+					currentCommand.Use = strings.TrimSuffix(p, bladeRecipeSuffix)
 					applyRecipeFlagOverrides(currentRecipe, currentCommand)
 					currentCommand.Run = func(cmd *cobra.Command, args []string) {
 						// Apply validation of flags if used.
 						validateFlags()
-
 						modifier := bladessh.NewSessionModifier()
-
 						// Apply flag overrides to the recipe here.
 						applyFlagOverrides(currentRecipe, modifier)
-
 						// Finally kick off session of requests.
 						bladessh.StartSession(currentRecipe, modifier)
 					}
