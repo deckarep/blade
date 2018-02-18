@@ -191,15 +191,15 @@ func generateCommandLine() {
 	commands := make(map[string]*cobra.Command)
 
 	for _, file := range fileList {
-		parts := strings.Split(file, "/")
-
 		currentRecipe, err := recipe.LoadRecipeYaml(file)
 		if err != nil {
 			log.Fatalf("%s: Broken recipe: %s failed to parse yaml:%s\n", color.RedString("ERROR"), file, err.Error())
 		}
 
 		// Find and drop all /recipes folders including all parent dirs.
+		parts := strings.Split(file, "/")
 		remainingParts := parts[indexOfRecipeFolder(parts)+1:]
+
 		currentRecipe.Name = strings.TrimSuffix(strings.Join(remainingParts, "."), bladeRecipeSuffix)
 		currentRecipe.Filename = file
 
@@ -232,7 +232,7 @@ func handleRecipeComponent(commands map[string]*cobra.Command, part string, last
 		recipeAlreadyFound = true
 	}
 
-	// If we're not a dir but a blade.toml...set it up to Run.
+	// If we're not a dir but a blade.yaml...set it up to Run.
 	if strings.HasSuffix(part, bladeRecipeSuffix) {
 		// Set the Use to just {recipe-name} of {recipe-name}.{bladeRecipeSuffix}.
 		currentCommand.Use = strings.TrimSuffix(part, bladeRecipeSuffix)
@@ -256,6 +256,5 @@ func handleRecipeComponent(commands map[string]*cobra.Command, part string, last
 			(*lastCommand).AddCommand(currentCommand)
 		}
 	}
-
 	*lastCommand = currentCommand
 }
