@@ -151,7 +151,9 @@ func searchFolders(folders ...string) []string {
 func walkFolder(rootFolder string) []string {
 	fileList := []string{}
 	err := filepath.Walk(rootFolder, func(path string, f os.FileInfo, err error) error {
-		fileList = append(fileList, path)
+		if strings.HasSuffix(path, bladeRecipeSuffix) {
+			fileList = append(fileList, path)
+		}
 		return nil
 	})
 
@@ -189,24 +191,21 @@ func generateCommandLine() {
 	commands := make(map[string]*cobra.Command)
 
 	for _, file := range fileList {
-		if strings.HasSuffix(file, bladeRecipeSuffix) {
-			parts := strings.Split(file, "/")
-			var lastCommand *cobra.Command
-			lastCommand = nil
+		parts := strings.Split(file, "/")
 
-			currentRecipe, err := recipe.LoadRecipeYaml(file)
-			if err != nil {
-				log.Fatalf("%s: Broken recipe: %s failed to parse yaml:%s\n", color.RedString("ERROR"), file, err.Error())
-			}
+		currentRecipe, err := recipe.LoadRecipeYaml(file)
+		if err != nil {
+			log.Fatalf("%s: Broken recipe: %s failed to parse yaml:%s\n", color.RedString("ERROR"), file, err.Error())
+		}
 
-			// Find and drop all /recipes folders including all parent dirs.
-			remainingParts := parts[indexOfRecipeFolder(parts)+1:]
-			currentRecipe.Name = strings.TrimSuffix(strings.Join(remainingParts, "."), bladeRecipeSuffix)
-			currentRecipe.Filename = file
+		// Find and drop all /recipes folders including all parent dirs.
+		remainingParts := parts[indexOfRecipeFolder(parts)+1:]
+		currentRecipe.Name = strings.TrimSuffix(strings.Join(remainingParts, "."), bladeRecipeSuffix)
+		currentRecipe.Filename = file
 
-			for _, part := range remainingParts {
-				handleRecipeComponent(commands, part, &lastCommand, currentRecipe)
-			}
+		var lastCommand *cobra.Command
+		for _, part := range remainingParts {
+			handleRecipeComponent(commands, part, &lastCommand, currentRecipe)
 		}
 	}
 }
