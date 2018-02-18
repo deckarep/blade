@@ -197,7 +197,6 @@ func generateCommandLine() {
 			currentRecipe, err := recipe.LoadRecipeYaml(file)
 			if err != nil {
 				log.Fatalf("%s: Broken recipe: %s failed to parse yaml:%s\n", color.RedString("ERROR"), file, err.Error())
-				continue
 			}
 
 			// Find and drop all /recipes folders including all parent dirs.
@@ -205,54 +204,59 @@ func generateCommandLine() {
 			currentRecipe.Name = strings.TrimSuffix(strings.Join(remainingParts, "."), bladeRecipeSuffix)
 			currentRecipe.Filename = file
 
-			for _, p := range remainingParts {
-				var currentCommand *cobra.Command
-
-				// Known bug, we need to dedup these, but add them to a map based on their full path.
-				// Reason is: if you have the same folder name in different hiearchies you'll collide.
-				// This way we can add docs to describe command hiearchies when user uses the --help system.
-				recipeAlreadyFound := false
-				if _, ok := commands[p]; !ok {
-					// If not found create it.
-					currentCommand = &cobra.Command{
-						Use:   p,
-						Short: currentRecipe.Help.Short,
-						Long:  currentRecipe.Help.Long,
-					}
-					commands[p] = currentCommand
-				} else {
-					// If found use it.
-					currentCommand = commands[p]
-					recipeAlreadyFound = true
-				}
-
-				// If we're not a dir but a blade.toml...set it up to Run.
-				if strings.HasSuffix(p, bladeRecipeSuffix) {
-					// Set the Use to just {recipe-name} of {recipe-name}.{bladeRecipeSuffix}.
-					currentCommand.Use = strings.TrimSuffix(p, bladeRecipeSuffix)
-					applyRecipeFlagOverrides(currentRecipe, currentCommand)
-					currentCommand.Run = func(cmd *cobra.Command, args []string) {
-						// Apply validation of flags if used.
-						validateFlags()
-						modifier := bladessh.NewSessionModifier()
-						// Apply flag overrides to the recipe here.
-						applyFlagOverrides(currentRecipe, modifier)
-						// Finally kick off session of requests.
-						bladessh.StartSession(currentRecipe, modifier)
-					}
-				}
-
-				// Only add recipe nodes we haven't already found.
-				if !recipeAlreadyFound {
-					if lastCommand == nil {
-						runCmd.AddCommand(currentCommand)
-					} else {
-						lastCommand.AddCommand(currentCommand)
-					}
-				}
-
-				lastCommand = currentCommand
+			for _, part := range remainingParts {
+				handleRecipeComponent(commands, part, &lastCommand, currentRecipe)
 			}
 		}
 	}
+}
+
+// handleRecipeComponent needs to send a pointer to a pointer for lastCommand so that the state can be observed in method above.
+func handleRecipeComponent(commands map[string]*cobra.Command, part string, lastCommand **cobra.Command, currentRecipe *recipe.BladeRecipeYaml) {
+	var currentCommand *cobra.Command
+
+	// Known bug, we need to dedup these, but add them to a map based on their full path.
+	// Reason is: if you have the same folder name in different hiearchies you'll collide.
+	// This way we can add docs to describe command hiearchies when user uses the --help system.
+	recipeAlreadyFound := false
+	if _, ok := commands[part]; !ok {
+		// If not found create it.
+		currentCommand = &cobra.Command{
+			Use:   part,
+			Short: currentRecipe.Help.Short,
+			Long:  currentRecipe.Help.Long,
+		}
+		commands[part] = currentCommand
+	} else {
+		// If found use it.
+		currentCommand = commands[part]
+		recipeAlreadyFound = true
+	}
+
+	// If we're not a dir but a blade.toml...set it up to Run.
+	if strings.HasSuffix(part, bladeRecipeSuffix) {
+		// Set the Use to just {recipe-name} of {recipe-name}.{bladeRecipeSuffix}.
+		currentCommand.Use = strings.TrimSuffix(part, bladeRecipeSuffix)
+		applyRecipeFlagOverrides(currentRecipe, currentCommand)
+		currentCommand.Run = func(cmd *cobra.Command, args []string) {
+			// Apply validation of flags if used.
+			validateFlags()
+			modifier := bladessh.NewSessionModifier()
+			// Apply flag overrides to the recipe here.
+			applyFlagOverrides(currentRecipe, modifier)
+			// Finally kick off session of requests.
+			bladessh.StartSession(currentRecipe, modifier)
+		}
+	}
+
+	// Only add recipe nodes we haven't already found.
+	if !recipeAlreadyFound {
+		if *lastCommand == nil {
+			runCmd.AddCommand(currentCommand)
+		} else {
+			(*lastCommand).AddCommand(currentCommand)
+		}
+	}
+
+	*lastCommand = currentCommand
 }
