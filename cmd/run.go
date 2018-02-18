@@ -31,6 +31,7 @@ import (
 
 	"github.com/deckarep/blade/lib/recipe"
 	bladessh "github.com/deckarep/blade/lib/ssh"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -187,7 +188,6 @@ func generateCommandLine() {
 	fileList := searchFolders(userHomeDir(), bladeRecipesFolder)
 	commands := make(map[string]*cobra.Command)
 
-	// For now let's skip the global.blade.yaml file.
 	for _, file := range fileList {
 		if strings.HasSuffix(file, bladeRecipeSuffix) {
 			parts := strings.Split(file, "/")
@@ -196,7 +196,7 @@ func generateCommandLine() {
 
 			currentRecipe, err := recipe.LoadRecipeYaml(file)
 			if err != nil {
-				log.Println("Found a broken recipe...skipping: ", err.Error())
+				log.Fatalf("%s: Broken recipe: %s failed to parse yaml:%s\n", color.RedString("ERROR"), file, err.Error())
 				continue
 			}
 

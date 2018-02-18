@@ -23,7 +23,6 @@ package recipe
 
 import (
 	"io/ioutil"
-	"log"
 
 	yaml "gopkg.in/yaml.v1"
 )
@@ -38,7 +37,7 @@ func LoadRecipeYaml(path string) (*BladeRecipeYaml, error) {
 	var rec BladeRecipeYaml
 	err = yaml.Unmarshal(b, &rec)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		return nil, err
 	}
 
 	// Each argument needs to capture it's arg name for later processing.
