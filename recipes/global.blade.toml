@@ -1,7 +1,0 @@
-[[global]]
-# recipe_folder is the folder where all your recipes are stored, empty means where Blade runs.
-recipe_folder = ""
-# user identifies you and matches your ssh key.
-user = "rcaraveo"
-# host_seed_cache tells Blade how long to store lookups of host names.
-host_seed_cache = "5m"

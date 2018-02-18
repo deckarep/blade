@@ -34,6 +34,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	bladeHiddenFolder  = ".blade"
+	bladeRecipeSuffix  = ".blade.yaml"
+	bladeRecipesFolder = "recipes"
+)
+
 // Flag variables
 var (
 	retries     int
@@ -71,6 +77,7 @@ var (
 
 func init() {
 	generateCommandLine()
+
 	runCmd.PersistentFlags().StringVarP(&hosts,
 		"servers", "s", "", "servers flag is one or more comma-delimited servers.")
 	runCmd.PersistentFlags().IntVarP(&concurrency,
@@ -123,11 +130,9 @@ func applyFlagOverrides(recipe *recipe.BladeRecipeYaml, modifier *bladessh.Sessi
 	if hosts != "" {
 		modifier.FlagOverrides.Hosts = strings.Split(strings.TrimSpace(hosts), ",")
 	}
-
 	if concurrency > 0 {
 		modifier.FlagOverrides.Concurrency = concurrency
 	}
-
 	if port > 0 {
 		modifier.FlagOverrides.Port = port
 	}
@@ -160,26 +165,23 @@ func walkFolder(rootFolder string) []string {
 }
 
 func userHomeDir() string {
-	const bladeFolder = ".blade"
-
 	if runtime.GOOS == "windows" {
 		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
 		if home == "" {
 			home = os.Getenv("USERPROFILE")
 		}
-		return path.Join(home, bladeFolder)
+		return path.Join(home, bladeHiddenFolder)
 	}
-	return path.Join(os.Getenv("HOME"), bladeFolder)
+	return path.Join(os.Getenv("HOME"), bladeHiddenFolder)
 }
 
 func generateCommandLine() {
-	fileList := searchFolders(userHomeDir(), "recipes")
+	fileList := searchFolders(userHomeDir(), bladeRecipesFolder)
 	commands := make(map[string]*cobra.Command)
 
 	// For now let's skip the global.blade.yaml file.
 	for _, file := range fileList {
-		if strings.HasSuffix(file, ".blade.yaml") &&
-			!strings.Contains(file, "global.blade.yaml") {
+		if strings.HasSuffix(file, bladeRecipeSuffix) {
 			parts := strings.Split(file, "/")
 			var lastCommand *cobra.Command
 			lastCommand = nil
@@ -193,14 +195,14 @@ func generateCommandLine() {
 			// Find and drop all /recipes folders including all parent dirs.
 			var recipeIndex = 0
 			for index, part := range parts {
-				if part == "recipes" {
+				if part == bladeRecipesFolder {
 					recipeIndex = index
 					break
 				}
 			}
 
 			remainingParts := parts[recipeIndex+1:]
-			currentRecipe.Name = strings.TrimSuffix(strings.Join(remainingParts, "."), ".blade.toml")
+			currentRecipe.Name = strings.TrimSuffix(strings.Join(remainingParts, "."), bladeRecipeSuffix)
 			currentRecipe.Filename = file
 
 			for _, p := range remainingParts {
