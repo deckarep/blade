@@ -24,7 +24,9 @@ package cmd
 import (
 	"log"
 	"os"
+	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/deckarep/blade/lib/recipe"
@@ -91,20 +93,6 @@ var runCmd = &cobra.Command{
 	Short: "run [command]",
 }
 
-func scanBladeFolder(rootFolder string) []string {
-	fileList := []string{}
-	err := filepath.Walk(rootFolder, func(path string, f os.FileInfo, err error) error {
-		fileList = append(fileList, path)
-		return nil
-	})
-
-	if err != nil {
-		log.Fatal("Failed to generate recipe data")
-	}
-
-	return fileList
-}
-
 func validateFlags() {
 	if concurrency < 0 {
 		log.Fatal("The specified --concurrency flag must not be a negative number.")
@@ -145,8 +133,47 @@ func applyFlagOverrides(recipe *recipe.BladeRecipeYaml, modifier *bladessh.Sessi
 	}
 }
 
+func searchFolders(folders ...string) []string {
+	var results []string
+
+	for _, folder := range folders {
+		if _, err := os.Stat(folder); err == nil {
+			results = append(results, walkFolder(folder)...)
+		}
+	}
+
+	return results
+}
+
+func walkFolder(rootFolder string) []string {
+	fileList := []string{}
+	err := filepath.Walk(rootFolder, func(path string, f os.FileInfo, err error) error {
+		fileList = append(fileList, path)
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal("Failed to generate recipe data")
+	}
+
+	return fileList
+}
+
+func userHomeDir() string {
+	const bladeFolder = ".blade"
+
+	if runtime.GOOS == "windows" {
+		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+		if home == "" {
+			home = os.Getenv("USERPROFILE")
+		}
+		return path.Join(home, bladeFolder)
+	}
+	return path.Join(os.Getenv("HOME"), bladeFolder)
+}
+
 func generateCommandLine() {
-	fileList := scanBladeFolder("recipes/")
+	fileList := searchFolders(userHomeDir(), "recipes")
 	commands := make(map[string]*cobra.Command)
 
 	// For now let's skip the global.blade.yaml file.
@@ -163,8 +190,16 @@ func generateCommandLine() {
 				continue
 			}
 
-			// parts[1:] drop the /recipe part.
-			remainingParts := parts[1:]
+			// Find and drop all /recipes folders including all parent dirs.
+			var recipeIndex = 0
+			for index, part := range parts {
+				if part == "recipes" {
+					recipeIndex = index
+					break
+				}
+			}
+
+			remainingParts := parts[recipeIndex+1:]
 			currentRecipe.Name = strings.TrimSuffix(strings.Join(remainingParts, "."), ".blade.toml")
 			currentRecipe.Filename = file
 
