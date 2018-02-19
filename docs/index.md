@@ -1,7 +1,25 @@
 ### Quickstart
 
+Create an empty directory under: `~/.blade/recipes` to house recipe files.
+
 ```sh
-echo "how are you?"
+mkdir -p ~/.blade/recipes
+```
+
+Create a simple recipe file called: `hostname.blade.yaml`
+
+```sh
+cat << EOF > hostname.blade.yaml
+hosts: ["blade-host"]
+exec:
+  - hostname
+EOF
+```
+
+Invoke your new recipe by running Blade like so:
+
+```sh
+blade run hostname
 ```
 
 ### Examples
