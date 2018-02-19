@@ -1,8 +1,6 @@
 Blade
 =====
 
-NOTE: Blade is an unstable alpha API -- constructive feedback welcome.
-
 Blade is an SSH based remote command runner tool that attempts to capture best-practices when
 managing remote infrastructure inside .yaml files. These .yaml files are meant to be under source control and shared with team-mates. A Blade `.blade.yaml` file holds the declarative instructions for running one or more remote commands on one or more servers.
 
