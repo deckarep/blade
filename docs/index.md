@@ -1,10 +1,8 @@
-Blade
-=====
+### Quickstart
 
-Blade is an SSH based remote command runner tool that attempts to capture best-practices when
-managing remote infrastructure inside .yaml files. These .yaml files are meant to be under source control and shared with team-mates. A Blade `.blade.yaml` file holds the declarative instructions for running one or more remote commands on one or more servers.
-
-This gives you the power of running well-defined commands on fleets of servers in a simple, expressive and easy to use CLI interface. Add some `.blade.yaml` recipe commands to your `recipe/` folder in a hierarchy that makes sense to you and Blade will build a slick CLI dynamically for you based on this folder structure. Then you're ready to start using the tool.
+```sh
+echo "how are you?"
+```
 
 ### Examples
 TODO - show the most basic command: `./blade "hostname" -h somehost.com
