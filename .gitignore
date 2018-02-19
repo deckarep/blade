@@ -1,3 +1,4 @@
 blade
 *.db
 *.swp
+blade_completion.sh

@@ -21,21 +21,24 @@ SOFTWARE.
 
 package cmd
 
-// import (
-// 	"io/ioutil"
-// 	"os"
-// )
+import (
+	"log"
 
-// func init() {
-// 	RootCmd.AddCommand(bashCompletionCmd)
-// }
+	"github.com/spf13/cobra"
+)
 
-// var bashCompletionCmd = &cobra.Command{
-// 	Use:   "bash-completions",
-// 	Short: "Generates bash completions file based on the entire Blade command hierchy.",
-// 	Run: func(cmd *cobra.Command, args []string) {
-// 		// TODO: figure out how to set this up.
-// 		// bc := cmd.NewFactory(nil).NewKubectlCommand(os.Stdin, ioutil.Discard, ioutil.Discard)
-// 		// bc.GenBashCompletionFile("out.sh")
-// 	},
-// }
+func init() {
+	RootCmd.AddCommand(bashCompletionCmd)
+}
+
+var bashCompletionCmd = &cobra.Command{
+	Use:   "bash-completions",
+	Short: "Generates bash completions file based on the entire Blade command hierchy.",
+	Run: func(cmd *cobra.Command, args []string) {
+		// Not tested, but Cobra only currently supports bash completions and not zsh which is what I use.
+		err := RootCmd.GenBashCompletionFile("blade_completion.sh")
+		if err != nil {
+			log.Fatal("Couldn't properly generate bash completions")
+		}
+	},
+}
