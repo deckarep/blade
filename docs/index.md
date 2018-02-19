@@ -1,25 +1,36 @@
 ### Quickstart
 
+Here we will create our first recipe that operates against a fictitious remote hostname called `blade-dev`. To follow along ensure you have an active internet connection and substitute `blade-dev` for some remote host that you can reach and execute commands on.
+
 Create an empty directory under: `~/.blade/recipes` to house recipe files.
 
 ```sh
-mkdir -p ~/.blade/recipes
+> mkdir -p ~/.blade/recipes
 ```
 
-Create a simple recipe file called: `hostname.blade.yaml`
+Create a simple recipe file called `hostname.blade.yaml`.
 
 ```sh
-cat << EOF > hostname.blade.yaml
+> cat << EOF > ~/.blade/recipes/hostname.blade.yaml
 hosts: ["blade-host"]
 exec:
   - hostname
 EOF
 ```
 
-Invoke your new recipe by running Blade like so:
+Invoke your new recipe by running *Blade* like so:
 
 ```sh
-blade run hostname
+# Runs the recipe with default parameters.
+> blade run hostname
+```
+
+You should the following output
+
+```sh
+2018/02/19 14:21:38 Starting recipe: hostname
+blade-dev: blade-dev
+2018/02/19 14:21:40 Completed recipe: hostname - 1 success | 0 failed | 1 total
 ```
 
 ### Examples
