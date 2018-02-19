@@ -55,19 +55,6 @@ func StartSession(recipe *recipe.BladeRecipeYaml, modifier *SessionModifier) {
 
 	// TODO: Potentially, the user can use hosts that have different user credentials.
 	// For now let's just assume that all hosts would belong to the same user credential scenario.
-	// Assumme root.
-	if recipe.Overrides.User == "" {
-		recipe.Overrides.User = "root"
-	}
-
-	sshConfig := &ssh.ClientConfig{
-		// TODO: smarter logic to get username.
-		User: recipe.Overrides.User,
-		Auth: []ssh.AuthMethod{
-			SSHAgent(),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
 
 	// Apply recipe will apply the recipe arguments to the commands
 	// assumming they're defined.
@@ -87,7 +74,7 @@ func StartSession(recipe *recipe.BladeRecipeYaml, modifier *SessionModifier) {
 		actualConcurrency = 1
 	}
 
-	go consumeAndLimitConcurrency(sshConfig, sshCmds, actualConcurrency)
+	go consumeAndLimitConcurrency(recipe, sshCmds, actualConcurrency)
 
 	// Flags take precedence.
 	allHosts := modifier.FlagOverrides.Hosts
@@ -136,7 +123,14 @@ func StartSession(recipe *recipe.BladeRecipeYaml, modifier *SessionModifier) {
 		totalHosts)))
 }
 
-func executeSession(sshConfig *ssh.ClientConfig, hostname string, commands []string) {
+func executeSession(recipe *recipe.BladeRecipeYaml, hostname string, commands []string) {
+	sshConfig := &ssh.ClientConfig{
+		User: lookupUsernameForHost(hostname),
+		Auth: []ssh.AuthMethod{
+			SSHAgent(),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
 
 	// inline user overrides sshConfig.User
 	userHost := strings.Split(hostname, "@")

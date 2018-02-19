@@ -22,9 +22,6 @@ SOFTWARE.
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/deckarep/blade/lib/ssh"
 	"github.com/spf13/cobra"
 )
 
@@ -38,12 +35,12 @@ var sshConfigCmd = &cobra.Command{
 	Long: `sshconfig will dump the user's ~/.ssh/config file. Currently used for debugging purposes.
 		   Also since ssh config is not a standard no guarantee all ssh configs will parse`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if ssh.ConfigMapping != nil {
-			for k, v := range ssh.ConfigMapping {
-				fmt.Printf("key: %s, val: %+v\n", k, v)
-			}
-			return
-		}
-		fmt.Println("User's ssh config was not parseable: Does the file ~/.ssh/config exist?")
+		// if ssh.ConfigMapping != nil {
+		// 	for k, v := range ssh.ConfigMapping {
+		// 		fmt.Printf("key: %s, val: %+v\n", k, v)
+		// 	}
+		// 	return
+		// }
+		// fmt.Println("User's ssh config was not parseable: Does the file ~/.ssh/config exist?")
 	},
 }

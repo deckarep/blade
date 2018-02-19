@@ -32,28 +32,79 @@ import (
 	"path"
 	"strings"
 
+	"github.com/deckarep/blade/lib/recipe"
+
 	humanize "github.com/dustin/go-humanize"
 	"github.com/fatih/color"
+	"github.com/gobwas/glob"
 	"github.com/mikkeloscar/sshconfig"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
 
+type hostGlobItem struct {
+	glob  glob.Glob
+	entry *sshconfig.SSHHost
+}
+
+const (
+	defaultUnmatchedUser = "root"
+)
+
 var (
-	ConfigMapping map[string]*sshconfig.SSHHost
+	globMatcher  glob.Glob
+	hostGlobList []*hostGlobItem
 )
 
 func init() {
+	hostGlobList = createHostGlobList()
+}
+
+func lookupUsernameForHost(host string) string {
+	// TODO: clean this up but we have to strip the :22 port.
+	actualHost := strings.Replace(host, ":22", "", -1)
+
+	// Precedence of username returned:
+	// 	1. First host glob match.
+	// 	2. Full * (wildcard) for host glob.
+	// 	3. HOME user if able to get.
+	// 	4. default user to fallback on.
+	for _, hostGlob := range hostGlobList {
+		if hostGlob.glob.Match(actualHost) {
+			return hostGlob.entry.User
+		}
+	}
+
+	user, err := user.Current()
+	if err != nil {
+		log.Printf("%s: Couldn't get username for local user\n", color.YellowString("WARN"))
+		return defaultUnmatchedUser
+	}
+	return user.Username
+}
+
+func createHostGlobList() []*hostGlobItem {
+	var list []*hostGlobItem
+
 	mapping, err := parseSSHConfig()
 	if err != nil {
 		log.Println("Failed to parse SSHConfig mapping")
 	}
-	ConfigMapping = make(map[string]*sshconfig.SSHHost)
+
 	for _, item := range mapping {
 		for _, h := range item.Host {
-			ConfigMapping[h] = item
+			hostGlob, err := glob.Compile(h)
+			if err != nil {
+				log.Fatalf("%s: Host glob: %s not in a valid glob format within ~/.ssh/config file\n", color.RedString("ERROR"), h)
+			}
+			list = append(list, &hostGlobItem{
+				glob:  hostGlob,
+				entry: item,
+			})
 		}
 	}
+
+	return list
 }
 
 // SSHAgent queries the host operating systems SSH agent.
@@ -78,7 +129,7 @@ func parseSSHConfig() ([]*sshconfig.SSHHost, error) {
 	return hosts, nil
 }
 
-func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, commands []string, concurrency int) {
+func consumeAndLimitConcurrency(recipe *recipe.BladeRecipeYaml, commands []string, concurrency int) {
 	// Limit the amount of concurrent ssh sessions.
 	concurrencySem := make(chan int, concurrency)
 
@@ -89,7 +140,7 @@ func consumeAndLimitConcurrency(sshConfig *ssh.ClientConfig, commands []string, 
 				<-concurrencySem
 				hostWg.Done()
 			}()
-			executeSession(sshConfig, h, commands)
+			executeSession(recipe, h, commands)
 		}(host)
 	}
 }

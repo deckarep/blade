@@ -32,6 +32,12 @@
   version = "v1.5.0"
 
 [[projects]]
+  name = "github.com/gobwas/glob"
+  packages = [".","compiler","match","syntax","syntax/ast","syntax/lexer","util/runes","util/strings"]
+  revision = "5ccd90ef52e1e632236f7326478d4faa74f99438"
+  version = "v0.2.3"
+
+[[projects]]
   name = "github.com/inconshreveable/mousetrap"
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
@@ -94,6 +100,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3ca42854184762678fa72e1604c1f2630741dd1df4dbd6567d2546be6404ffb0"
+  inputs-digest = "3584e4ddbf1cbe92a8fccc0a45fa596852e16c8f3677022504b78ef0dae1bdc0"
   solver-name = "gps-cdcl"
   solver-version = 1
