@@ -43,6 +43,7 @@ const (
 
 // Flag variables
 var (
+	helpFlag    bool
 	retries     int
 	concurrency int
 	hosts       string
@@ -79,8 +80,10 @@ var (
 func init() {
 	generateCommandLine()
 
+	// help flag needs to be there so we can reserve -h for hosts flag, otherwise Cobra panics.
+	runCmd.PersistentFlags().BoolVarP(&helpFlag, "help", "", false, "Help default flag")
 	runCmd.PersistentFlags().StringVarP(&hosts,
-		"servers", "s", "", "servers flag is one or more comma-delimited servers.")
+		"hosts", "h", "", "hosts flag is one or more comma-delimited servers.")
 	runCmd.PersistentFlags().IntVarP(&concurrency,
 		"concurrency", "c", 0, "Max concurrency when running ssh commands")
 	runCmd.PersistentFlags().IntVarP(&retries,
@@ -93,6 +96,7 @@ func init() {
 		"quiet", "q", false, "quiet mode will keep Blade as silent as possible.")
 	runCmd.PersistentFlags().BoolVarP(&verbose,
 		"verbose", "v", false, "verbose mode will keep Blade as verbose as possible.")
+
 	RootCmd.AddCommand(runCmd)
 }
 

@@ -85,7 +85,7 @@ blade-dev: blade-dev
 ```
 
 At this point, we've executed a single remote command called `hostname` on a single remote host called `blade-dev`. 
-Let's modify our single `hostname.blade.toml` file to run on more hosts.
+Let's modify our single `hostname.blade.yaml` file to run on more hosts.
 
 ```yaml
 hosts: ["blade-dev", "blade-prod"]
@@ -109,7 +109,7 @@ blade-prod: blade-prod
 
 As you can see, Blade has now executed a single command on each remote host. This execution happened in a serial fashion where only a single host was executed at a time.
 
-Let's modify the `hostname.blade.toml` to execute an additional command per host and save that change.
+Let's modify the `hostname.blade.yaml` to execute an additional command per host and save that change.
 
 ```yaml
 hosts: ["blade-dev", "blade-prod"]
@@ -120,7 +120,7 @@ exec:
 
 Rerun the command: `./blade run tutorial hostname` and observe that for each host running there is a 5 second delay due to the sleep command. This means, that because we execute these commands in serial on one host first, then the other Blade will take a total of 10 seconds to complete for both hosts.
 
-But, with the power of concurrency, we can update our `hostname.blade.toml` file to have our commands executed at a concurrency level of 2. Let's also add a third `echo` command so we can observe how this changes the behavior of our run.
+But, with the power of concurrency, we can update our `hostname.blade.yaml` file to have our commands executed at a concurrency level of 2. Let's also add a third `echo` command so we can observe how this changes the behavior of our run.
 
 ```yaml
 hosts: ["blade-dev", "blade-prod"]
@@ -133,7 +133,7 @@ overrides:
 
 Rerun the command: `/.blade run tutorial hostname` and now observe that because we added a concurrency override of 2 and even though we have a sleep delay of 5 seconds, both servers start and execute these remote commands and the entire Blade session finishes in about 5 seconds.
 
-Instead of updating our `hostname.blade.toml` file we additionally could have used Blade's command-line flags to override the concurrency behavior like so:
+Instead of updating our `hostname.blade.yaml` file we additionally could have used Blade's command-line flags to override the concurrency behavior like so:
 
 ```sh
 ./blade run tutorial hostname -c2 # or --concurrency 2
