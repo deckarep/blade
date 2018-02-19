@@ -8,8 +8,12 @@ managing remote infrastructure inside .yaml files. These .yaml files are meant t
 
 This gives you the power of running well-defined commands on fleets of servers in a simple, expressive and easy to use CLI interface. Add some `.blade.yaml` recipe commands to your `recipe/` folder in a hierarchy that makes sense to you and Blade will build a slick CLI dynamically for you based on this folder structure. Then you're ready to start using the tool.
 
-### Demo
-TODO
+### Examples
+TODO - show the most basic command: `./blade "hostname" -h somehost.com
+
+### .blade/recipes folder
+
+The `~/.blade/recipes` folder is special hidden folder that you should add in your user's `~/` path. This folder is special because you can place all of your `.blade.yaml` files here organized in directory/command hierarchy to your liking. This affords you a place on your file-system to build a repository of recipe files that you may want to have also under source control such as github.
 
 ### Tutorial
 

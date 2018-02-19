@@ -47,12 +47,21 @@ var (
 
 // StartSession kicks off a Blade Recipe as a session of work to be completed.
 func StartSession(recipe *recipe.BladeRecipeYaml, modifier *SessionModifier) {
+
+	// TODO: Long term we need to do 3 things.
+	// 1. Bind the the session modifier to the recipe.
+	// 2. Create a debug spot to dump the actual settings used before execution.
+	// 3. Make sure all of this happens in a single location so we don't have track down where modifiers are applied.
+
+	// TODO: Potentially, the user can use hosts that have different user credentials.
+	// For now let's just assume that all hosts would belong to the same user credential scenario.
 	// Assumme root.
 	if recipe.Overrides.User == "" {
 		recipe.Overrides.User = "root"
 	}
 
 	sshConfig := &ssh.ClientConfig{
+		// TODO: smarter logic to get username.
 		User: recipe.Overrides.User,
 		Auth: []ssh.AuthMethod{
 			SSHAgent(),
