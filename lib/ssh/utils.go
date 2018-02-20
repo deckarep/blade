@@ -31,6 +31,7 @@ import (
 	"os/user"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/deckarep/blade/lib/recipe"
 
@@ -165,7 +166,9 @@ func enqueueHost(host string, port int) {
 	hostWg.Add(1)
 }
 
-func consumeReaderPipes(host string, rdr io.Reader, isStdErr bool, attempt int) {
+func consumeReaderPipes(wg *sync.WaitGroup, host string, rdr io.Reader, isStdErr bool, attempt int) {
+	defer wg.Done()
+
 	logHost := color.CyanString(host + ":")
 
 	if isStdErr {

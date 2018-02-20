@@ -24,6 +24,7 @@ package ssh
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -98,9 +99,19 @@ func (se *singleExecution) do() error {
 
 	currentHost := strings.Split(se.hostname, ":")[0]
 
+	// Wait for consumerReaderPipes to fully consume before returning from this function so we can be sure
+	// all session logs have finished writing for the session when the session is closed.
+	// This way we don't get a session log line AFTER the `Recipe done` log line.
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	defer func() {
+		wg.Wait()
+	}()
+
 	// Consume session Stdout, Stderr pipe async.
-	go consumeReaderPipes(currentHost, out, false, 0)
-	go consumeReaderPipes(currentHost, errOut, true, se.attempt)
+	go consumeReaderPipes(&wg, currentHost, out, false, 0)
+	go consumeReaderPipes(&wg, currentHost, errOut, true, se.attempt)
 
 	// Once a Session is created, you can only ever execute a single command.
 	if err := session.Run(se.command); err != nil {
