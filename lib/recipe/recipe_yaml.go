@@ -34,7 +34,7 @@ type BladeArgumentDetails struct {
 // AttachFlag allows you to pass in a Cobra command if you'd like to attach an override
 // flag in relation to this argument.
 func (a *BladeArgumentDetails) AttachFlag(cobraCommand *cobra.Command) {
-	cobraCommand.Flags().StringVarP(&a.flagValue, a.Value, "", "", a.Help+" (recipe flag)")
+	cobraCommand.Flags().StringVarP(&a.flagValue, a.argName, "", "", a.Help+" (recipe flag)")
 }
 
 // FlagValue returns the applied flag which either came from a command-line override or
