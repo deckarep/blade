@@ -102,7 +102,7 @@ func StartSession(recipe *recipe.BladeRecipeYaml, modifier *SessionModifier) {
 		log.Fatalf("No host or hostlookup defined for this recipe, alternatively use the --servers flag.")
 	}
 
-	log.Print(color.GreenString(fmt.Sprintf("Starting recipe: %s", recipe.Name)))
+	log.Print(color.GreenString(fmt.Sprintf("Recipe start: %s", recipe.Name)))
 
 	actualPort := modifier.FlagOverrides.Port
 	if actualPort == 0 {
@@ -118,7 +118,7 @@ func StartSession(recipe *recipe.BladeRecipeYaml, modifier *SessionModifier) {
 	}
 
 	hostWg.Wait()
-	log.Print(color.GreenString(fmt.Sprintf("Completed recipe: %s - %d success | %d failed | %d total",
+	log.Print(color.GreenString(fmt.Sprintf("Recipe done: %s - %d success | %d failed | %d total",
 		recipe.Name,
 		atomic.LoadInt32(&successfullyCompleted),
 		atomic.LoadInt32(&failedCompleted),
