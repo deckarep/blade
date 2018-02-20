@@ -1,9 +1,9 @@
 hosts: ['blade-prod-a']
 args:
-    proj:
+    username:
       value: Ralph
-      help: proj is the user you want to use
+      help: is the user you want to use
 exec:
-  - echo 'Hello {{proj}}'
+  - echo 'Hello {{username}} who is years young'
 overrides:
   concurrency: 5

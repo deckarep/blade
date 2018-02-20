@@ -22,10 +22,12 @@ SOFTWARE.
 package ssh
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -61,7 +63,7 @@ func StartSession(recipe *recipe.BladeRecipeYaml, modifier *SessionModifier) {
 	// TODO: don't loop twice here, then later for each cmd processing.
 	sshCmds, err := applyRecipeArgs(recipe.Args, recipe.Exec)
 	if err != nil {
-		log.Fatal("Failed to apply recipe arguments to commands with err:", err.Error())
+		log.Fatalf("%s: Failed to apply recipe arguments to commands with err: %s", color.RedString("ERROR"), err.Error())
 	}
 
 	actualConcurrency := modifier.FlagOverrides.Concurrency
@@ -178,28 +180,40 @@ func startSSHSession(sshConfig *ssh.ClientConfig, hostname string, commands []st
 	return nil
 }
 
+var argSubstitutions = regexp.MustCompile(`{{.*?}}`)
+
 func applyRecipeArgs(args recipe.BladeRecipeArguments, commands []string) ([]string, error) {
 	if len(args) == 0 {
 		return commands, nil
 	}
 
-	// TODO: ensure at least all args are used at least once to minimize end-user errors.
-	// TODO: also allow the args to become flags so you can override at the command line.
+	totalSubstitutionsIdentified := 0
+	totalSubstitutionsApplied := 0
 
-	var appliedResults []string
+	// TODO: ensure at least all args are used at least once to minimize end-user errors.
+	var appliedSSHCommands []string
 	for _, cmd := range commands {
+		// Gets the count of all substitutions identified
+		totalSubstitutionsIdentified += len(argSubstitutions.FindAllString(cmd, -1))
 		replacedCmd := cmd
 		for _, arg := range args {
 			argToken := fmt.Sprintf("{{%s}}", arg.Name())
 			appliedFlagValue := arg.FlagValue()
-			if arg.FlagValue() != "" {
+			// If user supplied a flag, use it otherwise use the arg provided in the recipe.
+			if appliedFlagValue != "" {
 				replacedCmd = strings.Replace(replacedCmd, argToken, appliedFlagValue, -1)
 			} else {
 				replacedCmd = strings.Replace(replacedCmd, argToken, arg.Value, -1)
 			}
+			totalSubstitutionsApplied += 1
 		}
-		appliedResults = append(appliedResults, replacedCmd)
+		appliedSSHCommands = append(appliedSSHCommands, replacedCmd)
 	}
 
-	return appliedResults, nil
+	// If we don't have all argument substitutions accounted for let's error out to the user.
+	if totalSubstitutionsApplied < totalSubstitutionsIdentified {
+		return nil, errors.New("A argument must be declared for all substitutions defined in recipe")
+	}
+
+	return appliedSSHCommands, nil
 }
