@@ -5,5 +5,6 @@ args:
       help: is the user you want to use
 exec:
   - echo 'Hello {{username}} who is years young'
+  - cat /root/sample.json
 overrides:
   concurrency: 5
