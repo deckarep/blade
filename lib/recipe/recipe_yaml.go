@@ -21,7 +21,12 @@ SOFTWARE.
 
 package recipe
 
-import "github.com/spf13/cobra"
+import (
+	"log"
+
+	"github.com/fatih/color"
+	"github.com/spf13/cobra"
+)
 
 type BladeArgumentDetails struct {
 	Value string
@@ -40,10 +45,18 @@ func (a *BladeArgumentDetails) AttachFlag(cobraCommand *cobra.Command) {
 // FlagValue returns the applied flag which either came from a command-line override or
 // from the Recipe itself.
 func (a *BladeArgumentDetails) FlagValue() string {
+	// Precedence:
+	// 1. First use the flag override if provided.
+	// 2. Fallback to the recipe default value.
+	// 3. Otherwise Fatalf to indicate that a flag must be provided on the command-line since one is not inside the recipe.
 	if a.flagValue != "" {
 		return a.flagValue
 	}
-	return a.Value
+	if a.Value != "" {
+		return a.Value
+	}
+	log.Fatalf("%s: Flag \"--%s\" a be supplied as an argument since no default value is provided in the recipe\n", color.RedString("ERROR"), a.argName)
+	panic("Unreachable")
 }
 
 // Name returns the argument name or what string is in the {{}} construct.

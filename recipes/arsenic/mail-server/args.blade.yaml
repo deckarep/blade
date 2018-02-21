@@ -3,8 +3,11 @@ args:
     username:
       value: Ralph
       help: is the user you want to use
+args:
+    age:
+      help: is the user's age
 exec:
-  - echo 'Hello {{username}} who is years young'
+  - echo 'Hello {{username}} who is {{age}} years young'
   - cat /root/sample.json
 overrides:
   concurrency: 5
