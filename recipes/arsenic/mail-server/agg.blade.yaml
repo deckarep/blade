@@ -1,0 +1,7 @@
+hosts: ['blade-prod-a']
+exec:
+  - hostname
+  - yum list grep 2> /dev/null | grep el7 | awk '{print $2}'
+rollup:
+  - sort
+  - uniq -c
