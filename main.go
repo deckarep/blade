@@ -23,12 +23,40 @@ package main
 
 import (
 	"log"
+	"os"
+	"runtime/pprof"
 
 	"github.com/deckarep/blade/cmd"
 )
 
 func main() {
+	//cpuStartProfile()
+	//defer cpuStopProfile()
 	if err := cmd.RootCmd.Execute(); err != nil {
 		log.Fatal("Failed to execute RootCmd with err:", err.Error())
 	}
+	//memWriteHeapProfile()
+}
+
+func cpuStartProfile() {
+	f, err := os.Create("blade.cpu.profile")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pprof.StartCPUProfile(f)
+
+}
+
+func cpuStopProfile() {
+	pprof.StopCPUProfile()
+}
+
+func memWriteHeapProfile() {
+	f, err := os.Create("blade.mem.profile")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+	pprof.WriteHeapProfile(f)
 }
