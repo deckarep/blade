@@ -41,6 +41,17 @@
   version = "v0.2.3"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/hil"
+  packages = [
+    ".",
+    "ast",
+    "parser",
+    "scanner"
+  ]
+  revision = "fa9f258a92500514cc8e9c67020487709df92432"
+
+[[projects]]
   name = "github.com/inconshreveable/mousetrap"
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
@@ -63,6 +74,18 @@
   name = "github.com/mikkeloscar/sshconfig"
   packages = ["."]
   revision = "501286685510343458a6e698a18174f5242749f3"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mitchellh/mapstructure"
+  packages = ["."]
+  revision = "00c29f56e2386353d58c599509e8dc3801b0d716"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mitchellh/reflectwalk"
+  packages = ["."]
+  revision = "63d60e9d0dbc60cf9164e6510889b0db6683d98c"
 
 [[projects]]
   name = "github.com/spf13/cobra"
@@ -111,6 +134,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "79d4a7f4223ed653e28a06d559c0c9f4f5bad09632c31c527b126f91417ba9cb"
+  inputs-digest = "dbf0a325c146bf6743fdfd6ea5628848ed906c57aad74b63a28e339488cff03c"
   solver-name = "gps-cdcl"
   solver-version = 1
