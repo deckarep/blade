@@ -1,13 +1,18 @@
+# TODO: use hil interpolation language.
 hosts: ['blade-prod-a']
 args:
+    location:
+      value: Las Vegas
+      help: is the user's location
     username:
       value: Ralph
       help: is the user you want to use
-args:
     age:
       help: is the user's age
 exec:
-  - echo 'Hello {{username}} who is {{age}} years young'
+  - echo 'Hello ${username} who is ${age} years young'
+  - echo '${username} is super cool!'
+  - echo '${username} is from ${location}'
   - cat /root/sample.json
 overrides:
   concurrency: 5

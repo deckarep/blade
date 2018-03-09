@@ -55,7 +55,7 @@ func (a *BladeArgumentDetails) FlagValue() string {
 	if a.Value != "" {
 		return a.Value
 	}
-	log.Fatalf("%s: Flag \"--%s\" a be supplied as an argument since no default value is provided in the recipe\n", color.RedString("ERROR"), a.argName)
+	log.Fatalf("%s: Flag \"--%s\" should be supplied as an argument since no default value is provided in the recipe\n", color.RedString("ERROR"), a.argName)
 	panic("Unreachable")
 }
 

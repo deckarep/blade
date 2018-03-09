@@ -36,6 +36,8 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/deckarep/blade/lib/recipe"
 	"github.com/fatih/color"
+	"github.com/hashicorp/hil"
+	"github.com/hashicorp/hil/ast"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -180,39 +182,64 @@ func startSSHSession(sshConfig *ssh.ClientConfig, hostname string, commands []st
 	return nil
 }
 
-var argSubstitutions = regexp.MustCompile(`{{.*?}}`)
+var argSubstitutions = regexp.MustCompile(`\${.*?}`)
 
 func applyRecipeArgs(args recipe.BladeRecipeArguments, commands []string) ([]string, error) {
 	if len(args) == 0 {
 		return commands, nil
 	}
 
-	totalSubstitutionsIdentified := 0
-	totalSubstitutionsApplied := 0
+	identifiedSubs := 0
+	unusedSubs := 0
 
-	// TODO: ensure at least all args are used at least once to minimize end-user errors.
+	// Build hil eval context.
+	evalContext := &hil.EvalConfig{
+		GlobalScope: &ast.BasicScope{
+			VarMap: make(map[string]ast.Variable),
+			// TODO: add FuncMap to enhance the usability.
+		},
+	}
+
+	// Bind all supplied arg/flags values to evalContext.
+	for _, arg := range args {
+		appliedFlagValue := arg.FlagValue()
+		// If user supplied a flag, use it otherwise use the arg provided in the recipe.
+		variableValue := arg.Value
+		if appliedFlagValue != "" {
+			variableValue = appliedFlagValue
+		}
+		evalContext.GlobalScope.VarMap[arg.Name()] = ast.Variable{
+			Type:  ast.TypeString,
+			Value: variableValue,
+		}
+	}
+
 	var appliedSSHCommands []string
 	for _, cmd := range commands {
-		// Gets the count of all substitutions identified
-		totalSubstitutionsIdentified += len(argSubstitutions.FindAllString(cmd, -1))
-		replacedCmd := cmd
-		for _, arg := range args {
-			argToken := fmt.Sprintf("{{%s}}", arg.Name())
-			appliedFlagValue := arg.FlagValue()
-			// If user supplied a flag, use it otherwise use the arg provided in the recipe.
-			if appliedFlagValue != "" {
-				replacedCmd = strings.Replace(replacedCmd, argToken, appliedFlagValue, -1)
-			} else {
-				replacedCmd = strings.Replace(replacedCmd, argToken, arg.Value, -1)
-			}
-			totalSubstitutionsApplied += 1
+		// Get a count of any subs that haven't been applied yet.
+		identifiedSubs += len(argSubstitutions.FindAllString(cmd, -1))
+
+		// Parse the HIL expression.
+		tree, err := hil.Parse(cmd)
+		if err != nil {
+			log.Fatalf("Failed to parse HIL expression for command: %q with err: %s", cmd, err.Error())
 		}
-		appliedSSHCommands = append(appliedSSHCommands, replacedCmd)
+
+		// Perform HIL evaluation against bound variables to generate the new command.
+		result, err := hil.Eval(tree, evalContext)
+		if err != nil {
+			log.Fatalf("Failed to evaluate HIL expression tree against bound arguments for command: %q with err: %s", cmd, err.Error())
+		}
+
+		newCmd := result.Value.(string)
+		// Get a count of any non-applied substitutions, consider this a bad thing.
+		unusedSubs += len(argSubstitutions.FindAllString(newCmd, -1))
+		appliedSSHCommands = append(appliedSSHCommands, newCmd)
 	}
 
 	// If we don't have all argument substitutions accounted for let's error out to the user.
-	if totalSubstitutionsApplied < totalSubstitutionsIdentified {
-		return nil, errors.New("A argument must be declared for all substitutions defined in recipe")
+	if unusedSubs > 0 {
+		return nil, errors.New("An argument must be declared for all substitutions defined in recipe")
 	}
 
 	return appliedSSHCommands, nil
